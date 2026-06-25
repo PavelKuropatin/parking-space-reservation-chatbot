@@ -1,19 +1,17 @@
 # parking-space-reservation-chatbot
-
 TODO
+    fix static data categories
+    
     sql store
-        via tools?
         auth?
         single schema?
         SQLAchemy? + pools + query vs model
-        move (space availability, working hours, prices) from MD
-        user memory?
+    
+    user memory?
     testing? ragas
 
-
-    add singleton
+    add singleton?
     guardrails - 3-party lib?
-    organize via langchain
     
     create readme + pptx
     ci\cd

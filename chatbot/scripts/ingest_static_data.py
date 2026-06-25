@@ -4,7 +4,7 @@ from weaviate import WeaviateClient
 from weaviate.classes.config import Configure, Property, DataType
 from weaviate.collections import Collection
 
-from chatbot.utils.settings import Settings, get_settings
+from chatbot.settings import Settings, get_settings
 from chatbot.utils.weaviate_utils import get_weaviate_client, get_weaviate_vector_store
 
 from langchain_core.documents import Document
@@ -17,10 +17,9 @@ from langchain_text_splitters import (
 
 __CATEGORIES = {
     "General Information": "general",
+    "Locations": "general",
     "Parking Details": "general",
-    "Location": "location",
     "Booking Process": "booking",
-    "Pricing & Discounts": "booking",
     "Rules & Policies": "policies",
     "Questions & Answers": "faq",
     "Contact & Support": "general",
@@ -65,7 +64,7 @@ def load_documents(
 def split_document(
     md_file_path: str, chunk_size: int, chunk_overlap: int
 ) -> list[Document]:
-    md_file_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=[("##", "h2")])
+    md_file_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=[("##", "h2"), ("##", "h3")])
     text_splitter = RecursiveCharacterTextSplitter(
         separators=["\n\n", "\n", " "],
         chunk_size=chunk_size,
@@ -78,6 +77,7 @@ def split_document(
 
     all_documents: list[Document] = []
     for section in sections:
+        # todo refactor
         category = __CATEGORIES[section.metadata["h2"]]
         doc_chunks = text_splitter.split_documents([section])
 

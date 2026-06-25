@@ -1,4 +1,5 @@
 services:
+
   weaviate:
     image: cr.weaviate.io/semitechnologies/weaviate:1.38.1
     ports:
@@ -27,5 +28,23 @@ services:
     environment:
       ENABLE_CUDA: '0'
 
+
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PSWD}
+
+    ports:
+      - 5432:5432
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./assets/dynamic:/docker-entrypoint-initdb.d
+
+
 volumes:
   weaviate_data:
+  postgres_data:

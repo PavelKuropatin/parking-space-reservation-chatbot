@@ -1,4 +1,4 @@
-from chatbot.utils.settings import Settings
+from chatbot.settings import Settings
 from chatbot.utils.weaviate_utils import get_weaviate_client, get_weaviate_vector_store
 
 

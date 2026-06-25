@@ -2,7 +2,7 @@ import weaviate
 from weaviate import WeaviateClient
 from langchain.embeddings import init_embeddings
 from langchain_weaviate import WeaviateVectorStore
-from chatbot.utils.settings import Settings, get_settings
+from chatbot.settings import Settings
 
 
 def get_weaviate_client(settings: Settings) -> WeaviateClient:
