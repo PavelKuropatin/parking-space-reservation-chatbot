@@ -1,18 +1,12 @@
 # parking-space-reservation-chatbot
 TODO
-    fix static data categories
-    
     sql store
         auth?
-        single schema?
-        SQLAchemy? + pools + query vs model
     
     user memory?
-    testing? ragas
-
-    add singleton?
+    rag eval? ragas
     guardrails - 3-party lib?
     
     create readme + pptx
-    ci\cd
+    ci\cd + pylint + pytest
     analyze for code security

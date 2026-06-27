@@ -7,7 +7,7 @@ rate, and lets you skip the entry queue with contactless barrier access.
 | Item | Details |
 |------|---------|
 | Operator | CityPark |
-| Locations | 3 (Central, Airport, Old Town) |
+| Locations | 1 (Central) |
 | Reservation lead time | From 30 minutes up to 90 days in advance |
 | Payment methods | Credit/debit card, Apple Pay, Google Pay, in-app wallet |
 | Entry/exit | Automatic licence-plate recognition (ANPR) or QR code |
@@ -27,7 +27,7 @@ rate, and lets you skip the entry queue with contactless barrier access.
 CityPark has three facilities. Addresses, access points and directions are
 stable and listed below.
 
-### CityPark Central — `CP-CENTRAL`
+### CityPark Central
 
 City-center facility, closest to the main shopping and business district.
 
@@ -37,48 +37,12 @@ City-center facility, closest to the main shopping and business district.
 | Entrance | Central Avenue (northbound) |
 | Exit | Market Street (southbound) |
 | GPS | 56.9496° N, 24.1052° E |
-| Levels | 6 |
-| Height limit | 2.10 m (Levels 1–5), 2.50 m (Level 6) |
+| Levels | 3 |
+| Height limit | 2.10 m (Levels 1–2), 2.50 m (Level 3) |
 | Nearest landmark | Central Station (4-min walk) |
 
 - **By car:** Exit the inner ring road at Junction 5, follow signs for "City Center P".
 - **Public transport:** Trams 3, 7, 9 and buses 22, 40 stop at *Central Station*.
-
-### CityPark Airport — `CP-AIRPORT`
-
-Large facility beside Riga International Airport (RIX), suited to long stays.
-
-| | |
-|---|---|
-| Address | 3 Airport Way, Mārupe, LV-1053, Latvia |
-| Entrance | Airport Way, Terminal P-zone |
-| GPS | 56.9236° N, 23.9711° E |
-| Levels | 4 + open-air deck |
-| Height limit | 2.20 m (covered), no limit (open deck) |
-| Terminal link | Free shuttle every 10 min; 6-min walk via covered walkway |
-
-- **By car:** Follow A10 / airport signs; take the "P Long-stay" lane before the terminal loop.
-- **Shuttle:** Departs from Level 1 arrivals point.
-
-### CityPark Old Town — `CP-OLDTOWN`
-
-Smaller premium facility in the historic district. Daytime hours only — it is
-**not** a 24/7 site.
-
-| | |
-|---|---|
-| Address | 7 Cathedral Square, Riga, LV-1050, Latvia |
-| Entrance | Pils Street (one-way, from the north) |
-| GPS | 56.9489° N, 24.1064° E |
-| Levels | 3 (underground) |
-| Height limit | 1.90 m (strict — underground) |
-| Nearest landmark | Riga Cathedral (1-min walk) |
-
-- **By car:** The Old Town has a restricted-traffic zone; reserved bookings include a permit to enter via Pils Street.
-- **On foot:** Pedestrian lift exits directly onto Cathedral Square.
-
-> *Dynamic:* Old Town's daily opening/closing times — and holiday closures such
-> as Līgo/Jāņi — are stored in the database, not here.
 
 ---
 
@@ -113,7 +77,7 @@ These categories are offered across the network. Descriptions are stable.
 Reserving a space takes about two minutes.
 
 1. **Search** — Open the CityPark app or website and enter your **location, arrival date, time, and duration**.
-2. **Choose a space** — Pick a location and space type. Live availability and the current price are shown in real time.
+2. **Choose a space** — Pick a location and space type
 3. **Enter vehicle details** — Provide your **licence plate number** to enable automatic barrier entry.
 4. **Pay** — Confirm and pay securely. You'll get a confirmation and QR code by email and in the app.
 5. **Arrive & park** — At the barrier, the camera reads your plate (or scan your QR code) and the gate opens.
@@ -152,12 +116,6 @@ A: You can enter up to 15 minutes before your start time at no charge. Arriving 
 
 **Q: What happens if the facility is full when I arrive?**
 A: A confirmed reservation guarantees a space. If one is somehow unavailable, staff will direct you to an alternative bay or a nearby partner facility at no extra cost.
-
-**Q: Is the Old Town location open 24 hours?**
-A: No. Old Town has daytime hours only and closes on certain public holidays. Central and Airport operate around the clock. Check the app for the exact hours on your date.
-
-**Q: How do I find the current price or whether spaces are free?**
-A: Prices and availability are live — they're shown in the app at the moment you book, not fixed in this guide.
 
 **Q: Can I reserve an EV charger separately from a parking space?**
 A: No — EV bays include both the space and the charger. Select an *EV Charging* space when booking.

@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 
@@ -6,7 +8,9 @@ class Settings(BaseSettings):
 
     openai_llm_model: str
     openai_llm_url: str
-    openai_api_key: str
+    openai_llm_api_key: str
+
+    openai_embeddings_api_key: str
     openai_embeddings_model: str
 
     weaviate_host: str
@@ -34,6 +38,6 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-
+@lru_cache
 def get_settings():
     return Settings()

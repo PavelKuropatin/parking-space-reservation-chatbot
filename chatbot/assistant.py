@@ -1,24 +1,19 @@
+from uuid import uuid4
+
 from langchain.messages import HumanMessage
-from langchain_weaviate import WeaviateVectorStore
 
-from chatbot.database.sql_store import ParkingData
-from chatbot.graph.root_graph import ChatState, build_assistant_graph
-from chatbot.settings import Settings
+from chatbot.graph.client_graph import GraphState, build_graph
 
 
+# pylint: disable=too-few-public-methods
 class ParkingAssistant:
 
-    def __init__(
-        self,
-        settings: Settings,
-        parking_data_db: ParkingData,
-        parking_info_vs: WeaviateVectorStore,
-    ):
-        self.__graph = build_assistant_graph(settings, parking_data_db, parking_info_vs)
+    def __init__(self):
+        self.__graph = build_graph()
+        self.__config = {"configurable": {"thread_id": str(uuid4())}}
 
-    def chat(self, text: str) -> ChatState:
-        # todo ?
-        return self.__graph.invoke(
-            {"messages": [HumanMessage(content=text)], "block": False},
-            config={"configurable": {"thread_id": "default"}},
+    def chat(self, user_input: str) -> GraphState:
+        response = self.__graph.invoke(
+            {"messages": [HumanMessage(content=user_input)]}, config=self.__config
         )
+        return response
