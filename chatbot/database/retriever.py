@@ -1,9 +1,8 @@
 from chatbot.settings import get_settings
-from chatbot.utils.singleton import Singleton
 from chatbot.utils.weaviate_utils import get_weaviate_client
 
 
-class ParkingInformationRetriever(metaclass=Singleton):
+class ParkingInformationRetriever():
 
     def __init__(self):
         settings = get_settings()
@@ -28,3 +27,12 @@ class ParkingInformationRetriever(metaclass=Singleton):
             self.__client.close()
         finally:
             pass
+
+
+__PARKING_INFO_RETRIEVER: ParkingInformationRetriever = None
+
+def get_parking_info_retriever()-> ParkingInformationRetriever:
+    global __PARKING_INFO_RETRIEVER
+    if __PARKING_INFO_RETRIEVER is None:
+        __PARKING_INFO_RETRIEVER = ParkingInformationRetriever()
+    return __PARKING_INFO_RETRIEVER

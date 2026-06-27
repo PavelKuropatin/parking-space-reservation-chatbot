@@ -5,12 +5,12 @@ from typing import Any
 
 from langchain_core.tools import BaseTool, tool
 
-from chatbot.database.sql_store import ParkingDataDB
+from chatbot.database.sql_store import get_parking_data_db
 
 
 def make_sql_store_tools() -> list[BaseTool]:
     """Build the parking tool set, each tool sharing the given ``db`` pool."""
-    db = ParkingDataDB()
+    db = get_parking_data_db()
 
 
 

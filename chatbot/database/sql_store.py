@@ -2,12 +2,10 @@ from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
 from chatbot.settings import get_settings
-from chatbot.utils.singleton import Singleton
 
 
-class ParkingDataDB(metaclass=Singleton):
+class ParkingDataDB:
     """Query API over the CityPark dynamic DB, backed by a connection pool."""
-
 
     def __init__(self) -> None:
         settings = get_settings()
@@ -35,7 +33,6 @@ class ParkingDataDB(metaclass=Singleton):
 
     def __exit__(self, *exc: object) -> None:
         self._pool.close()
-        self.close()
 
     def __fetch_all(self, query: str, params: dict | None = None) -> list[dict]:
         with self._pool.connection() as conn:
@@ -72,3 +69,13 @@ class ParkingDataDB(metaclass=Singleton):
             ORDER BY wh.day_of_week;
         """
         return self.__fetch_all(sql)
+
+
+__PARKING_DATA_DB: ParkingDataDB = None
+
+
+def get_parking_data_db() -> ParkingDataDB:
+    global __PARKING_DATA_DB
+    if __PARKING_DATA_DB is None:
+        __PARKING_DATA_DB = ParkingDataDB()
+    return __PARKING_DATA_DB

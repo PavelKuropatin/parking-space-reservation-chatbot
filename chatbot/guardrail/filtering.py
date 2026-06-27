@@ -64,11 +64,11 @@ class Guardtrail:
         return DetectionResult(blocked=False)
 
 
-__guardtrail = None
+__GUARDRAIL = None
 
 
 def get_guardrail() -> Guardtrail:
-    global __guardtrail
-    if __guardtrail is None:
-        __guardtrail = Guardtrail()
-    return __guardtrail
+    global __GUARDRAIL
+    if __GUARDRAIL is None:
+        __GUARDRAIL = Guardtrail()
+    return __GUARDRAIL

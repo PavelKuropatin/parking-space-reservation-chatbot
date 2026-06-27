@@ -35,7 +35,7 @@ ignore = [".venv"]
 disable = [
     "fixme",
     "missing-docstring",
-    # "too-few-public-methods"
+    "global-statement"
 ]
 
 [tool.pylint.format]

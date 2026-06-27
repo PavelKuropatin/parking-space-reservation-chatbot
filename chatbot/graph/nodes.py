@@ -7,7 +7,7 @@ from langchain.messages import (
     ToolMessage,
 )
 
-from chatbot.database.retriever import ParkingInformationRetriever
+from chatbot.database.retriever import get_parking_info_retriever
 from chatbot.graph.models import (
     RESERVATION_DETAILS_SPECS,
     RESERVATION_DETAILS_SPEC_BY_NAME,
@@ -118,7 +118,7 @@ def classify_user_intent_node(state: GraphState) -> dict:
 # --------------------------------------------------------------------------- #
 def qa_system_rag_input_node(state: GraphState) -> dict:
     question = last_user_input(state["messages"])
-    documents = ParkingInformationRetriever().query(question).objects
+    documents = get_parking_info_retriever().query(question).objects
     rag_context = [document.properties["content"] for document in documents]
     return {"rag_context": rag_context}
 
@@ -232,7 +232,7 @@ def interpret_user_confirmation_node(state: GraphState) -> dict:
     return {"intent": decision.intent}
 
 
-def cancel_inprogress_reservation_node(state: GraphState) -> dict:
+def cancel_inprogress_reservation_node(_state: GraphState) -> dict:
     return {
         "messages": [AIMessage("Cancelled — nothing was booked. Anything else?")],
         "reservation_phase": "cancelled",
@@ -252,7 +252,7 @@ def finalize_reservation_node(state: GraphState) -> dict:
     }
 
 
-def _book_reservation(current_details: dict) -> str:
+def _book_reservation(_current_details: dict) -> str:
     return "PRK-" + datetime.now().strftime("%y%m%d%H%M%S")
 
 
