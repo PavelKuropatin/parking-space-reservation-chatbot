@@ -104,6 +104,7 @@ def classify_user_intent_node(state: GraphState) -> dict:
     messages = URER_INPUT_ROOT_CLASSIFICATION_PROMPT_TMPL.invoke({"text": question})
     decision = __user_input_classifier.invoke(messages)
     updates = {"route": decision.route}
+    print(decision)
     if decision.route == "reservation" and state.get("reservation_phase") in (
         None,
         "done",
@@ -283,7 +284,7 @@ def intent_router(state: GraphState) -> str:
     route = state.get("route")
     if route == "information_request":
         return "information_request"
-    elif route == "extract_details":
+    elif route == "reservation":
         return "extract_details"
     else:
         return "unknown"
