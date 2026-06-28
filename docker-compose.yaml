@@ -1,0 +1,50 @@
+services:
+
+  weaviate:
+    image: cr.weaviate.io/semitechnologies/weaviate:1.38.1
+    ports:
+      - 8080:8080
+      - 50051:50051
+    restart: on-failure:0
+    volumes:
+      - weaviate_data:/var/lib/weaviate 
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: text2vec-transformers
+      ENABLE_MODULES: text2vec-transformers,reranker-transformers
+      TRANSFORMERS_INFERENCE_API: http://t2v-transformers:8080
+      RERANKER_INFERENCE_API: http://reranker-transformers:8080
+      CLUSTER_HOSTNAME: 'node1'
+
+  t2v-transformers:
+    image: cr.weaviate.io/semitechnologies/transformers-inference:sentence-transformers-multi-qa-MiniLM-L6-cos-v1
+    environment:
+      ENABLE_CUDA: '0'  
+
+  reranker-transformers:
+    image: cr.weaviate.io/semitechnologies/reranker-transformers:cross-encoder-ms-marco-MiniLM-L-6-v2
+    environment:
+      ENABLE_CUDA: '0'
+
+
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PSWD}
+
+    ports:
+      - 5432:5432
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./assets/dynamic:/docker-entrypoint-initdb.d
+
+
+volumes:
+  weaviate_data:
+  postgres_data:
