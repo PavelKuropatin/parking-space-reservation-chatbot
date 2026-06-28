@@ -113,6 +113,14 @@ def classify_user_intent_node(state: GraphState) -> dict:
     return updates
 
 
+def unknown_node(_state: GraphState) -> dict:
+    message = (
+"Hello! I'm here to help you reserve a parking spot quickly and easily.\n"
+"Just tell me what you need — I'll collect the details, then our team will confirm your booking shortly."
+    )
+    return {"messages": AIMessage(message)}
+
+
 # --------------------------------------------------------------------------- #
 # QA
 # --------------------------------------------------------------------------- #
@@ -272,11 +280,13 @@ def after_guardrail_router(state: GraphState) -> str:
 
 
 def intent_router(state: GraphState) -> str:
-    return (
-        "information_request"
-        if state.get("route") == "information_request"
-        else "extract_details"
-    )
+    route = state.get("route")
+    if route == "information_request":
+        return "information_request"
+    elif route == "extract_details":
+        return "extract_details"
+    else:
+        return "unknown"
 
 
 def missed_reservation_details_router(state: GraphState) -> str:

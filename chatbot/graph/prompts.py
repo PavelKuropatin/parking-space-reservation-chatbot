@@ -12,7 +12,8 @@ Classify the user's message into exactly ONE of these flows:
 - reservation   : User is ACTIVELY requesting to make a reservation right now 
                   (e.g. "I want to book a space", "reserve a space for me").
                   Do NOT use this for questions about how reservations work.
-Reply only with string flow name: information_request|reservation
+- unknown       : message is unclear, greetings, welcome or cannot be classified.
+Reply only with string flow name: information_request|reservation|unknown
 """),
   ("human", "{text}")
 ])

@@ -9,10 +9,11 @@ from langchain_core.messages import AnyMessage
 class UserIntentDecision(BaseModel):
     """Root routing decision for a fresh turn."""
 
-    route: Literal["information_request", "reservation"] = Field(
+    route: Literal["information_request", "reservation", "unknown"] = Field(
         description=(
             "'reservation' - user wants to book, reserve, or change a parking spot; use it if user directly write about it "
             "'information_request' - a question about hours, pricing, rules, and another questions about."
+            "'unknown' - message is unclear, greetings or cannot be classified"
         )
     )
 
@@ -60,7 +61,7 @@ class UserConfirmDecision(BaseModel):
 
 class GraphState(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
-    route: Optional[str]  # information_request | extract_details
+    route: Optional[str]  # information_request | reservation | unknown
 
     # guardrail
     input_blocked: bool

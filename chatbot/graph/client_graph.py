@@ -10,6 +10,7 @@ from chatbot.graph.nodes import (
     classify_user_intent_node,
     input_guardrail_node,
     output_guardrail_node,
+    unknown_node,
     user_confirmation_router,
     extract_reservation_details_node,
     finalize_reservation_node,
@@ -44,6 +45,9 @@ def build_graph() -> StateGraph:
     g.add_node("database_llm", qa_system_database_node)
     g.add_node("database_tools", ToolNode(DATABASE_TOOLS))
     g.add_node("information_response", qa_system_rag_output_node)
+    
+    # unknown
+    g.add_node("unknown", unknown_node)
 
     # Reservation nodes
     g.add_node("extract_details", extract_reservation_details_node)
@@ -61,6 +65,7 @@ def build_graph() -> StateGraph:
         "input_guardrail",
         after_guardrail_router,
         {
+            "unknown": "unknown",
             "blocked_response": "blocked_response",
             "classify_intent": "classify_intent",
             "extract_details": "extract_details",
@@ -68,11 +73,15 @@ def build_graph() -> StateGraph:
         },
     )
 
+    # unknown
+    g.add_edge("unknown", END)
+
     # Root router to define communication direction
     g.add_conditional_edges(
         "classify_intent",
         intent_router,
         {
+            "unknown": "unknown",
             "information_request": "information_request",
             "extract_details": "extract_details",
         },

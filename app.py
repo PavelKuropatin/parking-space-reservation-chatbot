@@ -16,7 +16,7 @@ def main():
     ):
         while True:
             try:
-                text = input("you> ").strip()
+                text = input("\n\nyou> ").strip()
             except (EOFError, KeyboardInterrupt):
                 print()
                 break
