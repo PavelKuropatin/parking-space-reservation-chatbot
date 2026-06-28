@@ -28,23 +28,26 @@ Instructions:
 - If the context does not contain the answer, say: "I don't have that information."
 - Do not guess or infer missing details.
 
-RAG CONTEXT:
-{rag_context}
-
 FIELD DEFINITIONS (for reference only):
 - is_24h = true means "Open 24 hours"
 - is_closed = true means "Closed all day"
 - opens_at / closes_at are only relevant when is_24h is false
-
-DATABASE CONTEXT:
-{db_context}
 
 IMPORTANT FIELD MEANINGS:
 - is_24h = true means the location is open 24 hours (all day, no closing time)
 - opens_at / closes_at are ignored when is_24h is true
 - is_closed = true means the location is closed all day
 """),
- ("human", "Question: {text}")
+ ("human", """
+Question: 
+{text}
+
+RAG context:
+{rag_context}
+
+Database context:
+{db_context}
+""")
 ])
 
 

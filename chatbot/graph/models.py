@@ -57,9 +57,13 @@ RESERVATION_DETAILS_SPECS: list[FieldSpec] = [
         "Which parking space type do you want? (Standard, EV, Compact, Oversized, Accessible)",
         lambda v, s: None,
     ),
-    FieldSpec("start_time", True, "When should the reservation start?", __validate_start_time),
+    FieldSpec(
+        "start_time", True, "When should the reservation start?", __validate_start_time
+    ),
     FieldSpec("end_time", True, "And when should it end?", __validate_end_time),
-    FieldSpec("license_plate", True, "What's your licence plate?", __validate_license_plate),
+    FieldSpec(
+        "license_plate", True, "What's your licence plate?", __validate_license_plate
+    ),
 ]
 
 RESERVATION_DETAILS_SPEC_BY_NAME = {s.name: s for s in RESERVATION_DETAILS_SPECS}

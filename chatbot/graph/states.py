@@ -16,6 +16,7 @@ class UserIntentDecision(BaseModel):
         )
     )
 
+
 RESERVATION_FIELD_LABELS = {
     "customer_name": "Customer",
     "space_type": "Space type",
@@ -23,6 +24,7 @@ RESERVATION_FIELD_LABELS = {
     "end_time": "End time",
     "license_plate": "Plate",
 }
+
 
 class ParkingReservationDetails(BaseModel):
     """Reservation fields. Leave a field null if the user did not mention it."""

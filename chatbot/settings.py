@@ -10,9 +10,6 @@ class Settings(BaseSettings):
     openai_llm_url: str
     openai_llm_api_key: str
 
-    openai_embeddings_api_key: str
-    openai_embeddings_model: str
-
     weaviate_host: str
     weaviate_port: int
     weaviate_grpc_port: int
@@ -37,6 +34,7 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
+
 
 @lru_cache
 def get_settings():

@@ -133,22 +133,22 @@ def delete_collection(w: WeaviateClient, collection_name: str) -> None:
     w.collections.delete(collection_name)
 
 
-def main():
-    settings = get_settings()
-    w_client = get_weaviate_client()
-    collection = settings.weaviate_collection
-    try:
+def load_static_data(settings: Settings) -> None:
+
+    with get_weaviate_client(settings) as w_client:
+        collection = settings.weaviate_collection
         if w_client.collections.exists(collection):
             w_client.collections.delete(collection)
         w_collection = create_collection(w_client, collection)
-        # w_vector_store = get_weaviate_vector_store(w, settings)
 
         documents = parse_files(settings.weaviate_init_data_path, settings)
 
         load_documents_in_collection(w_collection, documents)
-        # load_documents_in_vector_store(w_vector_store, documents)
-    finally:
-        w_client.close()
+
+
+def main():
+    settings = get_settings()
+    load_static_data(settings)
 
 
 if __name__ == "__main__":

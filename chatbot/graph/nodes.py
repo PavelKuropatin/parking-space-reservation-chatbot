@@ -29,18 +29,18 @@ from chatbot.graph.states import (
 )
 from chatbot.graph.utils import get_llm, last_ai_output, last_user_input
 from chatbot.guardrail.filtering import get_guardrail
-from chatbot.utils.sql_store_utils import make_sql_store_tools
+from chatbot.utils.sql_store_utils import create_parking_data_tools
 
 # --------------------------------------------------------------------------- #
 # LLM-s
 # --------------------------------------------------------------------------- #
-__LLM = get_llm()
-__user_input_classifier = __LLM.with_structured_output(UserIntentDecision)
-__user_info_extactor = __LLM.with_structured_output(ParkingReservationDetails)
-__confirmation_classifier = __LLM.with_structured_output(UserConfirmDecision)
+__llm = get_llm()
+__user_input_classifier = __llm.with_structured_output(UserIntentDecision)
+__user_info_extactor = __llm.with_structured_output(ParkingReservationDetails)
+__confirmation_classifier = __llm.with_structured_output(UserConfirmDecision)
 
-DATABASE_TOOLS = make_sql_store_tools()
-__database_llm = __LLM.bind_tools(DATABASE_TOOLS)
+DATABASE_TOOLS = create_parking_data_tools()
+__database_llm = __llm.bind_tools(DATABASE_TOOLS)
 
 
 # --------------------------------------------------------------------------- #
@@ -145,7 +145,7 @@ def qa_system_rag_output_node(state: GraphState) -> dict:
     messages = RAG_SUMMARIZATION_PROMPT_TMPL.invoke(
         {"rag_context": rag_context, "db_context": db_context, "text": question}
     )
-    response = __LLM.invoke(messages)
+    response = __llm.invoke(messages)
     return {"messages": [AIMessage(response.content)]}
 
 
@@ -201,16 +201,16 @@ def ask_missed_reservation_details_node(state: GraphState) -> dict:
     return {"messages": [AIMessage(text)]}
 
 
-def _summarize_booking(current_details: dict) -> str:
+def summarize_booking(current_details: dict) -> str:
     return "\n".join(
-        f" • {RESERVATION_FIELD_LABELS[k]}: {current_details[k]}"
-        for k in RESERVATION_FIELD_LABELS
+        f" - {RESERVATION_FIELD_LABELS[k]}: {current_details[k]}"
+        for k in RESERVATION_FIELD_LABELS # pylint: disable=consider-using-dict-items
         if current_details.get(k) is not None
     )
 
 
 def request_reservation_confirmation_node(state: GraphState) -> dict:
-    body = _summarize_booking(state["current_details"])
+    body = summarize_booking(state["current_details"])
     return {
         "messages": [
             AIMessage(f"Please confirm:\n{body}\n\nBook it? (yes / cancel / change)")
@@ -245,14 +245,14 @@ def cancel_inprogress_reservation_node(_state: GraphState) -> dict:
 
 
 def finalize_reservation_node(state: GraphState) -> dict:
-    reference_id = _book_reservation(state["current_details"])
+    reference_id = book_reservation(state["current_details"])
     return {
         "messages": [AIMessage(f"Booked. Reference: {reference_id}")],
         "reservation_phase": "done",
     }
 
 
-def _book_reservation(_current_details: dict) -> str:
+def book_reservation(_current_details: dict) -> str:
     return "PRK-" + datetime.now().strftime("%y%m%d%H%M%S")
 
 

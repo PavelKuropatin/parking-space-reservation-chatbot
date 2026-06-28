@@ -5,7 +5,6 @@ from chatbot.settings import get_settings
 
 
 class ParkingDataDB:
-    """Query API over the CityPark dynamic DB, backed by a connection pool."""
 
     def __init__(self) -> None:
         settings = get_settings()
@@ -40,11 +39,8 @@ class ParkingDataDB:
                 cur.execute(query, params)
                 return cur.fetchall()
 
-    # ======================================================================
     # pricing
-    # ======================================================================
     def get_current_pricing(self) -> list[dict]:
-        """Currently-active prices."""
         sql = """
             SELECT p.price_id,
                    p.price_type,
@@ -55,11 +51,8 @@ class ParkingDataDB:
         """
         return self.__fetch_all(sql)
 
-    # ======================================================================
     # working_hours
-    # ======================================================================
     def get_working_hours(self) -> list[dict]:
-        """Regular weekly hours for a facility."""
         sql = """
             SELECT wh.hours_id,
                    wh.day_of_week, 

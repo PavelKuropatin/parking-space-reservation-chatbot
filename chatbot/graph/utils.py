@@ -1,10 +1,11 @@
+from langchain.chat_models import BaseChatModel
 from langchain.messages import AIMessage, AnyMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 
 from chatbot.settings import get_settings
 
 
-def get_llm() -> ChatOpenAI:
+def get_llm() -> BaseChatModel:
     settings = get_settings()
     return ChatOpenAI(
         model=settings.openai_llm_model,

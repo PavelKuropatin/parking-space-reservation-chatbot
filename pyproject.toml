@@ -1,7 +1,7 @@
 [project]
 name = "parking-space-reservation-chatbot"
 version = "0.1.0"
-description = "Add your description here"
+description = "Parking space reservation chatot"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -35,12 +35,10 @@ ignore = [".venv"]
 disable = [
     "fixme",
     "missing-docstring",
-    "global-statement"
+    "global-statement",
+    "too-many-positional-arguments",
+    "too-many-arguments",
 ]
 
 [tool.pylint.format]
 max-line-length = 200
-
-# [tool.pylint.design]
-# max-args = 8
-# max-locals = 20
