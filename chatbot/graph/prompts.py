@@ -15,7 +15,7 @@ Classify the user's message into exactly ONE of these flows:
 - unknown       : message is unclear, greetings, welcome or cannot be classified.
 Reply only with string flow name: information_request|reservation|unknown
 """),
-  ("human", "{text}")
+  ("human", "{question}")
 ])
 
 
