@@ -1,5 +1,3 @@
-from langchain.messages import HumanMessage
-
 from chatbot.graph.client_graph import GraphState, build_graph
 
 
@@ -12,6 +10,6 @@ class ParkingAssistant:
 
     def chat(self, user_input: str) -> GraphState:
         response = self.__graph.invoke(
-            {"messages": [HumanMessage(content=user_input)]}, config=self.__config
+            {"human_message": user_input}, config=self.__config
         )
         return response

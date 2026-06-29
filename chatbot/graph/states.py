@@ -66,6 +66,9 @@ class GraphState(TypedDict):
     # guardrail
     input_blocked: bool
     block_reason: str
+    # control checkpointer messages
+    human_message: str
+    ai_message: str
 
     # information
     rag_context: list[str]

@@ -26,7 +26,7 @@ from chatbot.graph.states import (
     UserIntentDecision,
     ParkingReservationDetails,
 )
-from chatbot.graph.utils import get_llm, last_ai_output, last_user_input
+from chatbot.graph.utils import get_llm
 from chatbot.guardrail.filtering import get_guardrail
 
 # --------------------------------------------------------------------------- #
@@ -42,16 +42,12 @@ __confirmation_classifier = __llm.with_structured_output(UserConfirmDecision)
 # Guardrail
 # --------------------------------------------------------------------------- #
 def input_guardrail_node(state: GraphState) -> dict:
-
-    # possible pii already in history
-    messages = state.get("messages", [])
-    last_user = last_user_input(messages)
-
-    if not last_user:
+    human_message = state.get("human_message", "")
+    if not human_message:
         return {"input_blocked": False, "block_reason": ""}
 
     guardrail = get_guardrail()
-    result = guardrail.for_input(last_user)
+    result = guardrail.for_input(human_message)
     if result.blocked:
         return {"input_blocked": True, "block_reason": result.entity_summary}
 
@@ -59,26 +55,35 @@ def input_guardrail_node(state: GraphState) -> dict:
 
 
 def blocked_response_node(state: GraphState) -> dict:
-    reason = state.get("block_reason", "Message could not be processed.")
-
-    message = GUARDRAIL_INPUT_BLOCK_MSG.format(details=reason)
-    return {"messages": [AIMessage(content=message)]}
+    block_reason = state.get("block_reason", "Message could not be processed.")
+    guardrail_message = GUARDRAIL_INPUT_BLOCK_MSG.format(details=block_reason)
+    return {"ai_message": guardrail_message}
 
 
 def output_guardrail_node(state: GraphState) -> dict:
-    messages = state.get("messages", [])
-    # possible pii already in history
-    last_ai = last_ai_output(messages)
-    if not last_ai:
+
+    human_message = state.get("human_message", "")
+    ai_message = state.get("ai_message", "")
+    if not ai_message:
+        # is it possible?
         return {}
 
     guardrail = get_guardrail()
-    result = guardrail.for_input(last_ai)
+    result = guardrail.for_input(ai_message)
     if result.blocked:
-        message = GUARDRAIL_OUTPUT_BLOCK_MSG.format(details=result.entity_summary)
-        return {"messages": [AIMessage(message)]}
+        guardrail_message = GUARDRAIL_OUTPUT_BLOCK_MSG.format(
+            details=result.entity_summary
+        )
+        # skip human message for history
+        return {"messages": [AIMessage(guardrail_message)]}
 
-    return {}
+    # everything is ok
+    return {
+        "messages": [
+            HumanMessage(human_message),
+            AIMessage(ai_message),
+        ]
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -96,9 +101,11 @@ def __refresh_reservation_status() -> dict:
 
 
 def classify_user_intent_node(state: GraphState) -> dict:
-    question = last_user_input(state["messages"])
-    messages = URER_INPUT_ROOT_CLASSIFICATION_PROMPT_TMPL.invoke({"text": question})
+    question = state.get("human_message", "")
+
+    messages = URER_INPUT_ROOT_CLASSIFICATION_PROMPT_TMPL.invoke({"question": question})
     decision = __user_input_classifier.invoke(messages)
+
     updates = {"route": decision.route}
     if decision.route == "reservation" and state.get("reservation_phase") in (
         None,
@@ -110,40 +117,40 @@ def classify_user_intent_node(state: GraphState) -> dict:
 
 
 def unknown_node(_state: GraphState) -> dict:
-    message = (
-"Hello! I'm here to help you reserve a parking spot quickly and easily.\n"
-"Just tell me what you need — I'll collect the details, then our team will confirm your booking shortly."
+    greetings = (
+        "Hello! I'm here to help you reserve a parking spot quickly and easily.\n"
+        "Just tell me what you need — I'll collect the details, then our team will confirm your booking shortly."
     )
-    return {"messages": AIMessage(message)}
+    return {"ai_message": greetings}
 
 
 # --------------------------------------------------------------------------- #
 # QA
 # --------------------------------------------------------------------------- #
 def qa_system_rag_input_node(state: GraphState) -> dict:
-    question = last_user_input(state["messages"])
+    question = state.get("human_message", "")
     documents = get_parking_info_retriever().query(question).objects
     rag_context = [document.properties["content"] for document in documents]
     return {"rag_context": rag_context}
 
 
 def qa_system_rag_output_node(state: GraphState) -> dict:
-    question = last_user_input(state["messages"])
+    question = state.get("human_message", "")
     rag_context = state.get("rag_context", [])
 
     # TODO try catch
     db = get_parking_data_db()
     messages = RAG_SUMMARIZATION_PROMPT_TMPL.invoke(
         {
-            "rag_context": rag_context, 
-            "pricing": db.get_space_pricing(), 
-            "working_hours": db.get_working_hours(), 
-            "available_spaces": db.get_avaliable_spaces(), 
-            "question": question
+            "rag_context": rag_context,
+            "pricing": db.get_space_pricing(),
+            "working_hours": db.get_working_hours(),
+            "available_spaces": db.get_avaliable_spaces(),
+            "question": question,
         }
     )
     response = __llm.invoke(messages)
-    return {"messages": [AIMessage(response.content)]}
+    return {"ai_message": response.content}
 
 
 # --------------------------------------------------------------------------- #
@@ -195,43 +202,45 @@ def ask_missed_reservation_details_node(state: GraphState) -> dict:
         if state.get("pending_error")
         else spec.prompt
     )
-    return {"messages": [AIMessage(text)]}
+    return {"ai_message": text}
 
 
-def summarize_booking(current_details: dict) -> str:
+def summarize_reservation(current_details: dict) -> str:
     return "\n".join(
         f" - {RESERVATION_FIELD_LABELS[k]}: {current_details[k]}"
-        for k in RESERVATION_FIELD_LABELS # pylint: disable=consider-using-dict-items
+        for k in RESERVATION_FIELD_LABELS  # pylint: disable=consider-using-dict-items
         if current_details.get(k) is not None
     )
 
 
 def request_reservation_confirmation_node(state: GraphState) -> dict:
-    body = summarize_booking(state["current_details"])
+    reservation_summary = summarize_reservation(state["current_details"])
+    confirmation_message = (
+        f"Please confirm:\n{reservation_summary}\n\nBook it? (yes / cancel / change)"
+    )
     return {
-        "messages": [
-            AIMessage(f"Please confirm:\n{body}\n\nBook it? (yes / cancel / change)")
-        ],
+        "ai_message": confirmation_message,
         "reservation_phase": "confirming",
     }
 
 
 def interpret_user_confirmation_node(state: GraphState) -> dict:
-    user_text = last_user_input(state["messages"])
+    human_mesage = state.get("human_message", "")
     decision = __confirmation_classifier.invoke(
         [
             SystemMessage(
                 "User was asked to confirm a parking booking. Classify reply."
             ),
-            HumanMessage(user_text),
+            HumanMessage(human_mesage),
         ]
     )
     return {"intent": decision.intent}
 
 
 def cancel_inprogress_reservation_node(_state: GraphState) -> dict:
+    cancellation_message = "Cancelled — nothing was booked. Anything else?"
     return {
-        "messages": [AIMessage("Cancelled — nothing was booked. Anything else?")],
+        "ai_message": cancellation_message,
         "reservation_phase": "cancelled",
         "current_details": {},
         "errors": {},
@@ -242,14 +251,15 @@ def cancel_inprogress_reservation_node(_state: GraphState) -> dict:
 
 
 def finalize_reservation_node(state: GraphState) -> dict:
-    reference_id = book_reservation(state["current_details"])
+    reference_id = save_reservation(state["current_details"])
+    confirmed_reservation_message = f"Booked. Reference: {reference_id}"
     return {
-        "messages": [AIMessage(f"Booked. Reference: {reference_id}")],
+        "ai_message": confirmed_reservation_message,
         "reservation_phase": "done",
     }
 
 
-def book_reservation(_current_details: dict) -> str:
+def save_reservation(_current_details: dict) -> str:
     return "PRK-" + datetime.now().strftime("%y%m%d%H%M%S")
 
 
