@@ -29,34 +29,24 @@ Instructions:
 - If the context does not contain the answer, say: "I don't have that information."
 - Do not guess or infer missing details.
 
-FIELD DEFINITIONS (for reference only):
-- is_24h = true means "Open 24 hours"
-- is_closed = true means "Closed all day"
-- opens_at / closes_at are only relevant when is_24h is false
-
-IMPORTANT FIELD MEANINGS:
-- is_24h = true means the location is open 24 hours (all day, no closing time)
-- opens_at / closes_at are ignored when is_24h is true
-- is_closed = true means the location is closed all day
 """),
  ("human", """
 Question: 
-{text}
+{question}
 
 RAG context:
 {rag_context}
 
-Database context:
-{db_context}
+Parking current pricing:
+{pricing}
+
+Parking current working hours:
+{working_hours}
+
+Parking current available spaces:
+{available_spaces}
 """)
 ])
-
-
-RAG_DATABASE_SYSTEM_PROMPT = """
-You are a database reasoning agent. Use the available tools to extract
-prices, working hours, and any relevant structured info.
-When you have enough information, answer without calling more tools.
-"""
 
 
 RESERVATION_DETAILS_PARSING_PROMT_TMPL = ChatPromptTemplate.from_messages([
