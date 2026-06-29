@@ -23,7 +23,7 @@ from chatbot.graph.states import (
     RESERVATION_FIELD_LABELS,
     UserConfirmDecision,
     GraphState,
-    UserIntentDecision
+    UserIntentDecision,
 )
 from chatbot.graph.utils import get_llm, now
 from chatbot.guardrail.filtering import get_guardrail
@@ -91,7 +91,6 @@ def output_guardrail_node(state: GraphState) -> dict:
 def __refresh_reservation_status() -> dict:
     return {
         "current_details": {},
-        "intent": None,
         "reservation_phase": "collecting",
     }
 
@@ -179,6 +178,9 @@ def extract_reservation_details(
         field_value = getattr(response, field, None)
         if field_value:
             updated[field] = field_value
+        # except only 1st field was requested
+        # parse only one due to start/end datetimes
+        break
 
     return updated
 
@@ -205,28 +207,42 @@ def extract_reservation_details_node(state: GraphState) -> dict:
             if not current_details.get(f)
         }
 
-        messages = RETRIEVE_RESERVATION_DETAILS_PROMT_TMPL.invoke(
-            {
+        if missed_details:
+            messages = RETRIEVE_RESERVATION_DETAILS_PROMT_TMPL.invoke(
+                {
+                    "current_details": current_details,
+                    "gaps": missed_details.keys(),
+                    "now": now(),
+                    "human_message": human_message,
+                }
+            )
+            response = __user_reservation_llm.invoke(messages)
+            return {
+                **state,
                 "current_details": current_details,
-                "gaps": missed_details.keys(),
-                "now": now(),
-                "human_message": human_message,
+                "reservation_phase": "collecting",
+                "ai_message": response.content,
             }
-        )
-        response = __user_reservation_llm.invoke(messages)
-        reservation_phase = "collecting" if missed_details else "confirmation"
+
+        # all data gathered
+        summary = summarize_reservation(current_details)
+        message = f"Please confirm:\n{summary}\n\nBook it? (yes / cancel / change)"
         return {
+            **state,
             "current_details": current_details,
-            "reservation_phase": reservation_phase,
-            "ai_message": response.content,
+            "reservation_phase": "confirming",
+            "ai_message": message,
         }
 
     # expecet confirmation message confirmation
     response = __confirmation_classifier.invoke(
         [
-            SystemMessage(
-                "User was asked to confirm a parking booking. Classify reply."
-            ),
+            SystemMessage("""
+            User was asked to confirm a parking booking. Classify reply.
+            - yes: The user confirms, agrees, approves, or wants to proceed.
+            - cancel: The user rejects, declines, stops, aborts, or does not want to proceed.
+            - change: The user wants to modify, edit, adjust, change something before proceeding or unclear response
+            """),
             HumanMessage(human_message),
         ]
     )
@@ -299,19 +315,3 @@ def after_classify_intent_router(state: GraphState) -> str:
     if route == "reservation":
         return "reservation"
     return "unknown"
-
-
-def missed_reservation_details_router(state: GraphState) -> str:
-    return (
-        "ask_missed_details"
-        if state.get("pending_field")
-        else "request_user_confirmation"
-    )
-
-
-def user_confirmation_router(state: GraphState) -> str:
-    return {
-        "yes": "finalize_reservation",
-        "change": "reservation",
-        "cancel": "cancel_reservation",
-    }.get(state.get("intent"), "request_user_confirmation")

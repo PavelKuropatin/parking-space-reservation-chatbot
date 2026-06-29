@@ -19,17 +19,19 @@ class UserIntentDecision(BaseModel):
 
 RESERVATION_FIELD_LABELS = {
     "customer_name": "Customer",
+    "level": "Parking level",
     "space_type": "Space type",
-    "start_time": "Start time",
-    "end_time": "End time",
+    "start_datetime": "Start time",
+    "end_datetime": "End time",
     "license_plate": "Plate"
 }
 
 RESERVATION_FIELD_DESCRIPTIONS = {
     "customer_name": "customer/user first and last names",
+    "level": "parking level name (eg. B1, B2 or B3)",
     "space_type": "parking place type (STANDARD, EV or OVERSIZED)",
-    "start_time": "reservation start datetime in YYYY-MM-DD HH:MM format",
-    "end_time": "reservation end datetime in YYYY-MM-DD HH:MM format",
+    "start_datetime": "reservation start datetime in YYYY-MM-DD HH:MM format",
+    "end_datetime": "reservation end datetime in YYYY-MM-DD HH:MM format",
     "license_plate": "customer vehicle number / license plate",
 }
 
@@ -53,18 +55,14 @@ class GraphState(TypedDict):
     # guardrail
     input_blocked: bool
     block_reason: str
+
     # control checkpointer messages
     human_message: str
     ai_message: str
 
     # information
     rag_context: list[str]
-    db_context: list[dict]
 
     # reservation
     current_details: dict
-    errors: dict
-    pending_field: Optional[str]
-    pending_error: Optional[str]
-    intent: Optional[str]  # confirmation intent: yes | cancel | change
     reservation_phase: str  # "collecting" | "confirming" | "done" | "cancelled"
