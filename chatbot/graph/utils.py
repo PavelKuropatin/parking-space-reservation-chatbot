@@ -1,5 +1,6 @@
+from datetime import datetime
+
 from langchain.chat_models import BaseChatModel
-from langchain.messages import AIMessage, AnyMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 
 from chatbot.settings import get_settings
@@ -14,15 +15,5 @@ def get_llm() -> BaseChatModel:
     )
 
 
-def last_user_input(messages: list[AnyMessage]) -> str:
-    for m in reversed(messages):
-        if isinstance(m, HumanMessage):
-            return m.content
-    return ""
-
-
-def last_ai_output(messages: list[AnyMessage]) -> str:
-    for m in reversed(messages):
-        if isinstance(m, AIMessage):
-            return m.content
-    return ""
+def now():
+    return datetime.now().strftime("%Y-%m-%d %H:%M")
