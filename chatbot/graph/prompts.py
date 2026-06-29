@@ -76,41 +76,33 @@ RETRIEVE_RESERVATION_DETAILS_PROMT_TMPL = ChatPromptTemplate.from_messages([
 ## Required Reservation Fields
 Collect the following information:
 - customer_name: customer/user first and last names
+- level: parking level name (eg. B1, B2 or B3)
 - space_type: parking place type (STANDARD, EV or OVERSIZED)
 - start_datetime: reservation start datetime in YYYY-MM-DD HH:MM format
 - end_datetime: reservation end datetime in YYYY-MM-DD HH:MM format
 - license_plate: customer vehicle number / license plate
 
-## Data Validation
-- Ensure the parking start date and time occur before the end date and time.
-- Verify that required fields are not empty.
-- Ask for clarification when dates, times, vehicle numbers appear invalid.
-- Accept partial information and continue collecting missing details step by step.
+Currently collected data:
+{current_details}
 
+Missed fields:
+{gaps}
+
+Current datetime: 
+{now}
+     
 ## Collection Rules
-- Gather only missing fields.
+- Gather only one missing field per iteration.
+- If there are missing fields, ask for the next missing field only - one at a time.
 - Store previously provided information.
-- Ask for one or several related missing fields at a time.
-- Allow users to provide information in any order.
 - If the user updates a field, replace the previous value.
 - Interpret user information about start/end datetime like 'tomorrow' or 'today' against NOW.
 - If the user provide time in a.m. or p.m. notation, convert it to 24-hour format.
 
 ## Missing Information Handling
+Do not ask already collected fields.
 If required information is missing, continue the conversation until all mandatory fields have been collected.
 A reservation cannot be completed until all required fields are available and validated.
-
-## Confirmation
-Ask the user to confirm the information before finalizing the reservation.
-
-Collected fields: 
-{current_details}
-
-Missed fields:
-{gaps}
-    
-NOW/Current datetime: 
-{now}
             """),
     'human', '{human_message}'
 ])
@@ -133,7 +125,6 @@ Your task is to extract the value of the field "{field}" with description "{fiel
 - Preserve the original value exactly as written by the user whenever possible.
 - Interpret values about start/end datetime like 'tomorrow' or 'today' against NOW.
 - If the provide datetime in a.m. or p.m. notation, convert it to 24-hour format.
-- If the provide datetime in a.m. or p.m. notation, convert it to 24-hour format.
 - Keep all output datetime values in YYYY-MM-DD HH:MM.
 
 Output format:
@@ -148,20 +139,6 @@ Message: "My plate is ABC-1234."
 Output:
 {{
   "vehicle_number": "ABC-1234"
-}}
-
-Field: "start_datetime"
-Message: "Search place for tomorrow from 12 to 15"
-Output:
-{{
-  "start_datetime": "<next day in YYYY-MM-DD format> 12:00"
-}}
-
-Field: "end_datetime"
-Message: "Search place for tomorrow from 12 to 15"
-Output:
-{{
-  "end_datetime": "<next day in YYYY-MM-DD format> 15:00"
 }}
 
 Field: "space_type"
