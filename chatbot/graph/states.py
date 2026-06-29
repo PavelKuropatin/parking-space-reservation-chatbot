@@ -17,40 +17,27 @@ class UserIntentDecision(BaseModel):
         )
     )
 
-
 RESERVATION_FIELD_LABELS = {
     "customer_name": "Customer",
     "space_type": "Space type",
     "start_time": "Start time",
     "end_time": "End time",
-    "license_plate": "Plate",
+    "license_plate": "Plate"
 }
 
-
-class ParkingReservationDetails(BaseModel):
-    """Reservation fields. Leave a field null if the user did not mention it."""
-
-    customer_name: Optional[str] = Field(
-        None, description="Reservation customer user full name"
-    )
-    space_type: Optional[str] = Field(None, description="Parking space type")
-    start_time: Optional[str] = Field(
-        None,
-        description="Reservation start datetime in YYYY-mm-DD HH:mm format, resolved against NOW",
-    )
-    end_time: Optional[str] = Field(
-        None,
-        description="Reservation end datetime YYYY-mm-DD HH:mm format, resolved against NOW",
-    )
-    license_plate: Optional[str] = Field(
-        None, description="Vehicle plate as written, e.g. 'LV-1234' or 'AB1234'"
-    )
+RESERVATION_FIELD_DESCRIPTIONS = {
+    "customer_name": "customer/user first and last names",
+    "space_type": "parking place type (STANDARD, EV or OVERSIZED)",
+    "start_time": "reservation start datetime in YYYY-MM-DD HH:MM format",
+    "end_time": "reservation end datetime in YYYY-MM-DD HH:MM format",
+    "license_plate": "customer vehicle number / license plate",
+}
 
 
 class UserConfirmDecision(BaseModel):
     """User response interpretation to the confirmation prompt."""
 
-    intent: Literal["yes", "cancel", "change"] = Field(
+    decision: Literal["yes", "cancel", "change"] = Field(
         description=(
             "'yes' - approve and book "
             "'cancel' - decline/cancel entirely "
