@@ -1,8 +1,11 @@
+from cachetools import TTLCache, cached
+
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
 from chatbot.settings import get_settings
 
+_RESPONSE_CACHE = TTLCache(maxsize=100, ttl=60)
 
 class ParkingDataDB:
 
@@ -39,27 +42,37 @@ class ParkingDataDB:
                 cur.execute(query, params)
                 return cur.fetchall()
 
-    # pricing
-    def get_current_pricing(self) -> list[dict]:
+    def get_space_pricing(self) -> list[dict]:
         sql = """
             SELECT p.price_id,
                    p.price_type,
                    p.amount,
                    p.currency,
                    p.description 
-            FROM   pricing p
+            FROM pricing p;
         """
         return self.__fetch_all(sql)
 
-    # working_hours
     def get_working_hours(self) -> list[dict]:
         sql = """
-            SELECT wh.hours_id,
-                   wh.day_of_week, 
-                   wh.opens_at, wh.closes_at,
-                   wh.is_24h, wh.is_closed
-            FROM   working_hours wh
-            ORDER BY wh.day_of_week;
+            SELECT v.hours_id,
+                   v.day_of_week, 
+                   v.opens_at,
+                   v.closes_at,
+                   v.temporaly_closed
+            FROM  vw_working_hours v
+            ORDER BY v.day_of_week;
+        """
+        return self.__fetch_all(sql)
+
+
+    @cached(_RESPONSE_CACHE)
+    def get_avaliable_spaces(self) -> list[dict]:
+        sql = """
+            SELECT v.level,
+                   v.space_type,
+                   v.available_spaces
+            FROM vw_avaliable_spaces v;
         """
         return self.__fetch_all(sql)
 

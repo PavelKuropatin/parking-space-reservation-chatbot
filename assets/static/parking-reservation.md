@@ -55,10 +55,8 @@ These categories are offered across the network. Descriptions are stable.
 | Type | Code | Description |
 |------|------|-------------|
 | Standard | `STANDARD` | Regular car bay for vehicles up to 5.0 m. |
-| Compact | `COMPACT` | Smaller bay for compact cars, at a lower rate. |
-| Oversized / SUV | `OVERSIZED` | Wider, taller bay for SUVs, vans and campervans. |
+| Oversized | `OVERSIZED` | Wider, taller bay for SUVs, vans and campervans. |
 | EV Charging | `EV` | Standard bay equipped with an AC/DC charger. |
-| Accessible | `ACCESSIBLE` | Disabled-access bay; free with a valid permit. |
 
 ### Facility Features
 

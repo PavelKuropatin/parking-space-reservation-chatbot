@@ -1,20 +1,21 @@
 -- rerun
 BEGIN;
 
-DROP TABLE IF EXISTS spaces  CASCADE;
-DROP TABLE IF EXISTS pricing         CASCADE;
-DROP TABLE IF EXISTS working_hours   CASCADE;
-DROP TABLE IF EXISTS reservations    CASCADE;
+DROP TABLE IF EXISTS spaces        CASCADE;
+DROP TABLE IF EXISTS pricing       CASCADE;
+DROP TABLE IF EXISTS working_hours CASCADE;
+DROP TABLE IF EXISTS reservations  CASCADE;
 
 -- spaces
 CREATE TABLE IF NOT EXISTS spaces (
-    space_id     SERIAL PRIMARY KEY,
-    level        VARCHAR(10)  NOT NULL,
-    space_number VARCHAR(10)  NOT NULL,
-    space_type   VARCHAR(20)  NOT NULL CHECK (space_type IN ('STANDARD', 'COMPACT', 'OVERSIZED', 'EV', 'ACCESSIBLE')),
-    status       VARCHAR(20)  NOT NULL DEFAULT 'operating' CHECK (status IN ('operating', 'maintenance')),
-    UNIQUE (level, space_number)
+    level             VARCHAR(3)  NOT NULL,
+    space_type        VARCHAR(20) NOT NULL CHECK (space_type IN ('STANDARD','OVERSIZED', 'EV')),
+    amount            INT         NOT NULL,
+    UNIQUE (level, space_type)
 );
+COMMENT ON COLUMN spaces.level IS 'Parking spacel level';
+COMMENT ON COLUMN spaces.space_type IS 'Parking level space type';
+COMMENT ON COLUMN spaces.amount IS 'Amount of privided space type at level';
 
 -- pricing
 CREATE TABLE pricing (
@@ -52,14 +53,32 @@ COMMENT ON COLUMN working_hours.opens_at IS 'Opening time; NULL when is_24h or i
 COMMENT ON COLUMN working_hours.closes_at IS 'Closing time; NULL when is_24h or is_closed';
 COMMENT ON COLUMN working_hours.is_24h IS 'TRUE if open around the clock on this day';
 COMMENT ON COLUMN working_hours.is_closed IS 'TRUE if fully closed on this day';
-COMMENT ON CONSTRAINT unique_working_hours ON working_hours IS 'Times required only for bounded days';
-COMMENT ON CONSTRAINT check_hours_not_both ON working_hours IS 'A day cannot be both 24h and closed';
-COMMENT ON CONSTRAINT check_hours_times ON working_hours IS 'Mixed time configuration';
+
+
+CREATE OR REPLACE VIEW vw_working_hours
+AS
+SELECT  wh.hours_id,
+        wh.day_of_week, 
+        CASE 
+            WHEN wh.is_closed then null
+            WHEN wh.is_24h THEN '00:00'
+            ELSE wh.opens_at
+        END as opens_at,
+        CASE 
+            WHEN wh.is_closed then null
+            WHEN wh.is_24h THEN '23:59'
+            ELSE wh.closes_at
+        END as closes_at,
+        wh.is_closed as temporaly_closed
+FROM  working_hours wh
+ORDER BY wh.day_of_week;
+
 
 -- reservations
 CREATE TABLE IF NOT EXISTS reservations (
     id                SERIAL PRIMARY KEY,
-    space_id          INTEGER         REFERENCES spaces(space_id),
+    level             VARCHAR(3)      NOT NULL,
+    space_type        VARCHAR(20)     NOT NULL,
     customer_name     VARCHAR(100)    NOT NULL,
     license_plate     VARCHAR(20)     NOT NULL,
     start_datetime    TIMESTAMP       NOT NULL,
@@ -68,6 +87,21 @@ CREATE TABLE IF NOT EXISTS reservations (
     created_at        TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT valid_period CHECK (start_datetime < end_datetime)
 );
+
+
+CREATE OR REPLACE VIEW vw_avaliable_spaces
+AS
+SELECT  s.level,
+        s.space_type,
+        s.amount - COUNT(r.id) AS available_spaces
+FROM spaces s
+LEFT JOIN reservations r
+          ON r.space_type = s.space_type
+             AND r.level = s.level 
+             AND NOW() BETWEEN r.start_datetime AND r.end_datetime
+GROUP BY s.level, s.space_type, s.amount
+ORDER BY s.level, s.space_type;
+
 
 -- SEED DATA
 -- pricing
@@ -80,71 +114,26 @@ INSERT INTO pricing (price_type, amount, currency, description) VALUES
 
 
 -- working_hours
+INSERT INTO working_hours (day_of_week, opens_at, closes_at) VALUES
+    ('Monday',    '05:00', '23:59'),
+    ('Tuesday',   '05:00', '23:59'),
+    ('Thursday',  '05:00', '23:59'),
+    ('Friday',    '05:00', '23:59')
+;
+INSERT INTO working_hours (day_of_week, is_closed) VALUES
+    ('Wednesday', TRUE)
+;
 INSERT INTO working_hours (day_of_week, is_24h) VALUES
-    ('Monday',    TRUE),
-    ('Tuesday',   TRUE),
-    ('Wednesday', TRUE),
-    ('Thursday',  TRUE),
-    ('Friday',    TRUE),
     ('Saturday',  TRUE),
     ('Sunday',    TRUE)
 ;
 
+-- spaces
+INSERT INTO spaces (level, amount, space_type) VALUES 
+    ('B1', 100, 'STANDARD'), ('B1', 30, 'EV'), ('B1', 10, 'OVERSIZED'),
+    ('B2', 100, 'STANDARD'), ('B2', 35, 'EV'), ('B2', 5, 'OVERSIZED'),
+    ('B3', 100, 'STANDARD'), ('B3', 25, 'EV'), ('B3', 15, 'OVERSIZED')
+;
 
-DO $$
-DECLARE i INT;
-BEGIN
-    FOR i IN 1..10 LOOP
-        INSERT INTO spaces (level, space_number, space_type)
-        VALUES ('B1', 'H' || LPAD(i::TEXT, 2, '0'), 'ACCESSIBLE')
-        ;
-    END LOOP;
-
-    FOR i IN 1..10 LOOP
-        INSERT INTO spaces (level, space_number, space_type)
-        VALUES ('B1', 'EV' || LPAD(i::TEXT, 2, '0'), 'EV')
-        ;
-    END LOOP;
-
-    FOR i IN 1..30 LOOP
-        INSERT INTO spaces (level, space_number, space_type)
-        VALUES ('B1', 'S' || LPAD(i::TEXT, 2, '0'), 'STANDARD')
-        ;
-    END LOOP;
-END $$;
-
--- level B2: 20 compact, 30 standard
-DO $$
-DECLARE i INT;
-BEGIN
-    FOR i IN 1..20 LOOP
-        INSERT INTO spaces (level, space_number, space_type)
-        VALUES ('B2', 'C' || LPAD(i::TEXT, 2, '0'), 'COMPACT')
-        ;
-    END LOOP;
-
-    FOR i IN 1..30 LOOP
-        INSERT INTO spaces (level, space_number, space_type)
-        VALUES ('B2', 'S' || LPAD(i::TEXT, 2, '0'), 'STANDARD')
-        ;
-    END LOOP;
-END $$;
-
--- level B3: 10 EV, 40 standard
-DO $$
-DECLARE i INT;
-BEGIN
-    FOR i IN 11..20 LOOP
-        INSERT INTO spaces (level, space_number, space_type)
-        VALUES ('B3', 'EV' || LPAD(i::TEXT, 2, '0'), 'EV')
-        ;
-    END LOOP;
-
-    FOR i IN 1..40 LOOP
-        INSERT INTO spaces (level, space_number, space_type)
-        VALUES ('B3', 'S' || LPAD(i::TEXT, 2, '0'), 'STANDARD')
-        ;
-    END LOOP;
-END $$;
-
+-- TODO: reservations
 COMMIT;

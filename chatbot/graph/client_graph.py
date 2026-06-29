@@ -1,6 +1,5 @@
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
-from langgraph.prebuilt import ToolNode
 
 from chatbot.graph.nodes import (
     cancel_inprogress_reservation_node,
@@ -20,10 +19,7 @@ from chatbot.graph.nodes import (
     qa_system_rag_output_node,
     qa_system_rag_input_node,
     request_reservation_confirmation_node,
-    should_continue_database_tools,
-    validate_reservation_details,
-    qa_system_database_node,
-    DATABASE_TOOLS
+    validate_reservation_details
 )
 from chatbot.graph.states import GraphState
 
@@ -42,10 +38,8 @@ def build_graph() -> StateGraph:
 
     # QA nodes
     g.add_node("information_request", qa_system_rag_input_node)
-    g.add_node("database_llm", qa_system_database_node)
-    g.add_node("database_tools", ToolNode(DATABASE_TOOLS))
     g.add_node("information_response", qa_system_rag_output_node)
-    
+
     # unknown
     g.add_node("unknown", unknown_node)
 
@@ -88,15 +82,7 @@ def build_graph() -> StateGraph:
     )
 
     # QA edges
-    g.add_edge("information_request", "database_llm")
-    # TODO enrich descriptions and use rag as tool? anyway do rag?
-    # database tool cycle
-    g.add_conditional_edges(
-        "database_llm",
-        should_continue_database_tools,
-        {"database_tools": "database_tools", "done": "information_response"},
-    )
-    g.add_edge("database_tools", "database_llm")
+    g.add_edge("information_request", "information_response")
     g.add_edge("information_response", "output_guardrail")
 
     # Reservation edges

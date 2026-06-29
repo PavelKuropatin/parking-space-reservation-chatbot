@@ -112,14 +112,14 @@ WEAVIATE_INIT_DATA_PATH=assets/static
 
 # RAG tuning
 RAG_TOP_K=5
-RAG_CHUNK_SIZE=350
+RAG_CHUNK_SIZE=200
 RAG_CHUNK_OVERLAP=100
 
 # PostgreSQL
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
-POSTGRES_DB=dynamic_data_schema
-POSTGRES_USER=dynamic_data_user
+POSTGRES_DB=parking_db
+POSTGRES_USER=parking_db_user
 POSTGRES_PSWD=your-password
 POSTGRES_POOL_MIN_SIZE=1
 POSTGRES_POOL_MAX_SIZE=2
@@ -145,7 +145,7 @@ An interactive CLI session starts. Type your message and press Enter. Exit with 
 
 ```
 you> What parking space types are available?
-bot> CityPark offers Standard, Compact, Oversized/SUV, EV Charging, and Accessible bays.
+bot> CityPark offers Standard, Oversized and EV Charging.
 you> I'd like to book a space
 bot> Sure! What date and time do you need the space?
 ...

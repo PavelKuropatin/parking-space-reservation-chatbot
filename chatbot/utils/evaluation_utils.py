@@ -179,8 +179,10 @@ def generate_llm_answers(
         messages = RAG_SUMMARIZATION_PROMPT_TMPL.invoke(
             {
                 "rag_context": rag_context,
-                "db_context": "",
-                "text": item.question,
+                "pricing": "",
+                "working_hours": "",
+                "available_spaces": "",
+                "question": item.question,
             }
         )
         response = llm.invoke(messages)

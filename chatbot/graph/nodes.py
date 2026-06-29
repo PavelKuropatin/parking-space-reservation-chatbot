@@ -4,10 +4,10 @@ from langchain.messages import (
     AIMessage,
     HumanMessage,
     SystemMessage,
-    ToolMessage,
 )
 
 from chatbot.database.retriever import get_parking_info_retriever
+from chatbot.database.sql_store import get_parking_data_db
 from chatbot.graph.models import (
     RESERVATION_DETAILS_SPECS,
     RESERVATION_DETAILS_SPEC_BY_NAME,
@@ -15,7 +15,6 @@ from chatbot.graph.models import (
 from chatbot.graph.prompts import (
     GUARDRAIL_INPUT_BLOCK_MSG,
     GUARDRAIL_OUTPUT_BLOCK_MSG,
-    RAG_DATABASE_SYSTEM_PROMPT,
     RAG_SUMMARIZATION_PROMPT_TMPL,
     RESERVATION_DETAILS_PARSING_PROMT_TMPL,
     URER_INPUT_ROOT_CLASSIFICATION_PROMPT_TMPL,
@@ -29,7 +28,6 @@ from chatbot.graph.states import (
 )
 from chatbot.graph.utils import get_llm, last_ai_output, last_user_input
 from chatbot.guardrail.filtering import get_guardrail
-from chatbot.utils.sql_store_utils import create_parking_data_tools
 
 # --------------------------------------------------------------------------- #
 # LLM-s
@@ -39,16 +37,13 @@ __user_input_classifier = __llm.with_structured_output(UserIntentDecision)
 __user_info_extactor = __llm.with_structured_output(ParkingReservationDetails)
 __confirmation_classifier = __llm.with_structured_output(UserConfirmDecision)
 
-DATABASE_TOOLS = create_parking_data_tools()
-__database_llm = __llm.bind_tools(DATABASE_TOOLS)
-
 
 # --------------------------------------------------------------------------- #
 # Guardrail
 # --------------------------------------------------------------------------- #
 def input_guardrail_node(state: GraphState) -> dict:
-    """Block user input that contains sensitive financial / identity PII."""
 
+    # possible pii already in history
     messages = state.get("messages", [])
     last_user = last_user_input(messages)
 
@@ -72,6 +67,7 @@ def blocked_response_node(state: GraphState) -> dict:
 
 def output_guardrail_node(state: GraphState) -> dict:
     messages = state.get("messages", [])
+    # possible pii already in history
     last_ai = last_ai_output(messages)
     if not last_ai:
         return {}
@@ -104,7 +100,6 @@ def classify_user_intent_node(state: GraphState) -> dict:
     messages = URER_INPUT_ROOT_CLASSIFICATION_PROMPT_TMPL.invoke({"text": question})
     decision = __user_input_classifier.invoke(messages)
     updates = {"route": decision.route}
-    print(decision)
     if decision.route == "reservation" and state.get("reservation_phase") in (
         None,
         "done",
@@ -132,27 +127,20 @@ def qa_system_rag_input_node(state: GraphState) -> dict:
     return {"rag_context": rag_context}
 
 
-def qa_system_database_node(state: GraphState) -> dict:
-    response = __database_llm.invoke(
-        [SystemMessage(RAG_DATABASE_SYSTEM_PROMPT), *state["messages"]]
-    )
-    return {"messages": response}
-
-
-def should_continue_database_tools(state) -> str:
-    last_message = state["messages"][-1]
-    return "database_tools" if getattr(last_message, "tool_calls", None) else "done"
-
-
 def qa_system_rag_output_node(state: GraphState) -> dict:
     question = last_user_input(state["messages"])
     rag_context = state.get("rag_context", [])
-    db_context = {
-        m.name: m.content for m in state["messages"][-4:] if isinstance(m, ToolMessage)
-    }
 
+    # TODO try catch
+    db = get_parking_data_db()
     messages = RAG_SUMMARIZATION_PROMPT_TMPL.invoke(
-        {"rag_context": rag_context, "db_context": db_context, "text": question}
+        {
+            "rag_context": rag_context, 
+            "pricing": db.get_space_pricing(), 
+            "working_hours": db.get_working_hours(), 
+            "available_spaces": db.get_avaliable_spaces(), 
+            "question": question
+        }
     )
     response = __llm.invoke(messages)
     return {"messages": [AIMessage(response.content)]}
@@ -284,10 +272,9 @@ def intent_router(state: GraphState) -> str:
     route = state.get("route")
     if route == "information_request":
         return "information_request"
-    elif route == "reservation":
+    if route == "reservation":
         return "extract_details"
-    else:
-        return "unknown"
+    return "unknown"
 
 
 def missed_reservation_details_router(state: GraphState) -> str:
