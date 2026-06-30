@@ -75,7 +75,7 @@ RETRIEVE_RESERVATION_DETAILS_PROMT_TMPL = ChatPromptTemplate.from_messages([
 
 ## Required Reservation Fields
 Collect the following information:
-- customer_name: customer/user first and last names
+- customer_full_name: customer/user first and last names
 - level: parking level name (eg. B1, B2 or B3)
 - space_type: parking place type (STANDARD, EV or OVERSIZED)
 - start_datetime: reservation start datetime in YYYY-MM-DD HH:MM format
@@ -116,7 +116,7 @@ You are an information extraction assistant.
 ## Task
 Your task is to extract the value of the field "{field}" with description "{field_description}" from the user's message.
 
-# Collection rules
+## Collection rules
 - Return only valid JSON.
 - The JSON must contain exactly one property named "{field}".
 - If the value is not explicitly provided or cannot be determined from the message, return null.
@@ -151,6 +151,7 @@ Output:
 NOW/Current datetime: 
 {now}
             """),
+    'ai', '{ai_message}'
     'human', '{human_message}'
 ])
 

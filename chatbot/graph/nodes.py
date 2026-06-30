@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Optional
 
 from langchain.messages import (
@@ -155,7 +154,7 @@ def qa_system_rag_output_node(state: GraphState) -> dict:
 
 
 def extract_reservation_details(
-    human_message: str, current_details: dict, missed_details: dict
+    human_message: str, prev_ai_message: str, current_details: dict, missed_details: dict
 ) -> dict:
     if not missed_details:
         return current_details
@@ -168,6 +167,7 @@ def extract_reservation_details(
             {
                 "field": field,
                 "field_description": field_description,
+                "ai_message": prev_ai_message,
                 "human_message": human_message,
                 "now": now(),
             }
@@ -178,15 +178,13 @@ def extract_reservation_details(
         field_value = getattr(response, field, None)
         if field_value:
             updated[field] = field_value
-        # except only 1st field was requested
-        # parse only one due to start/end datetimes
-        break
 
     return updated
 
 
 def extract_reservation_details_node(state: GraphState) -> dict:
     human_message = state.get("human_message", "")
+    prev_ai_message = state.get("ai_message", "")
     current_details = state.get("current_details", {})
     missed_details = {
         f: RESERVATION_FIELD_DESCRIPTIONS[f]
@@ -199,7 +197,7 @@ def extract_reservation_details_node(state: GraphState) -> dict:
     if missed_details or reservetion_phase == "collecting":
         # update details state
         current_details = extract_reservation_details(
-            human_message, current_details, missed_details
+            human_message, prev_ai_message, current_details, missed_details
         )
         missed_details = {
             f: RESERVATION_FIELD_DESCRIPTIONS[f]
@@ -248,12 +246,14 @@ def extract_reservation_details_node(state: GraphState) -> dict:
     )
     match response.decision:
         case "yes":
-            reference_id = save_reservation(state["current_details"])
-            confirmed_reservation_message = f"Booked. Reference: {reference_id}"
+            reservation_id = save_reservation(state["current_details"])
+            confirmed_reservation_message = f"Booked. Reference: {reservation_id}"
             return {
                 **state,
                 "ai_message": confirmed_reservation_message,
                 "reservation_phase": "done",
+                "route": None,
+                "reservation_id": reservation_id
             }
         case "cancel":
             cancellation_message = "Cancelled — nothing was booked. Anything else?"
@@ -291,8 +291,10 @@ def summarize_reservation(current_details: dict) -> str:
     )
 
 
-def save_reservation(_current_details: dict) -> str:
-    return "PRK-" + datetime.now().strftime("%y%m%d%H%M%S")
+def save_reservation(current_details: dict) -> int:
+    response = get_parking_data_db().write_reservation(current_details)
+    reservation_id = response[0]["id"]
+    return reservation_id
 
 
 # --------------------------------------------------------------------------- #
