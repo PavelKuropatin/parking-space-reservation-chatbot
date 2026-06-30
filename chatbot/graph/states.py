@@ -18,7 +18,7 @@ class UserIntentDecision(BaseModel):
     )
 
 RESERVATION_FIELD_LABELS = {
-    "customer_name": "Customer",
+    "customer_full_name": "Customer",
     "level": "Parking level",
     "space_type": "Space type",
     "start_datetime": "Start time",
@@ -27,7 +27,7 @@ RESERVATION_FIELD_LABELS = {
 }
 
 RESERVATION_FIELD_DESCRIPTIONS = {
-    "customer_name": "customer/user first and last names",
+    "customer_full_name": "customer/user first and last names",
     "level": "parking level name (eg. B1, B2 or B3)",
     "space_type": "parking place type (STANDARD, EV or OVERSIZED)",
     "start_datetime": "reservation start datetime in YYYY-MM-DD HH:MM format",
@@ -66,3 +66,4 @@ class GraphState(TypedDict):
     # reservation
     current_details: dict
     reservation_phase: str  # "collecting" | "confirming" | "done" | "cancelled"
+    reservation_id: int

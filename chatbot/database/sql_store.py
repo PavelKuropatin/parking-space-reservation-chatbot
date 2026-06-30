@@ -7,6 +7,7 @@ from chatbot.settings import get_settings
 
 _RESPONSE_CACHE = TTLCache(maxsize=100, ttl=60)
 
+
 class ParkingDataDB:
 
     def __init__(self) -> None:
@@ -36,11 +37,26 @@ class ParkingDataDB:
     def __exit__(self, *exc: object) -> None:
         self._pool.close()
 
-    def __fetch_all(self, query: str, params: dict | None = None) -> list[dict]:
-        with self._pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(query, params)
-                return cur.fetchall()
+    def __fetch_all(
+        self, query: str, params: dict | None = None
+    ) -> list[dict]:
+        with self._pool.connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query, params)
+                return cursor.fetchall()
+
+    def __write(
+        self, query: str, params: dict | None = None
+    ) -> list[dict]:
+        with self._pool.connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query, params)
+
+                result = cursor.fetchall() if cursor.description else None
+
+                connection.commit()
+
+                return result
 
     def get_space_pricing(self) -> list[dict]:
         sql = """
@@ -75,6 +91,14 @@ class ParkingDataDB:
             FROM vw_avaliable_spaces v;
         """
         return self.__fetch_all(sql)
+
+    def write_reservation(self, params: dict) -> list[dict]:
+        sql = """
+            INSERT INTO reservations (level, space_type, customer_full_name, license_plate, start_datetime, end_datetime) 
+            VALUES (%(level)s, %(space_type)s, %(customer_full_name)s, %(license_plate)s, %(start_datetime)s, %(end_datetime)s) 
+            RETURNING id
+        """
+        return self.__write(sql, params)
 
 
 __PARKING_DATA_DB: ParkingDataDB = None
