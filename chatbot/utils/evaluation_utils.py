@@ -6,9 +6,9 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
 
 from chatbot.database.retriever import ParkingInformationRetriever
-from chatbot.graph.prompts import RAG_SUMMARIZATION_PROMPT_TMPL
+from chatbot.prompts import RAG_SUMMARIZATION_PROMPT_TMPL
 
-from chatbot.graph.utils import get_llm
+from chatbot.graph_utils import get_llm
 from chatbot.scripts.ingest_static_data import load_static_data
 from chatbot.settings import get_settings
 

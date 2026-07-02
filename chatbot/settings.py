@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     postgres_pool_min_size: int
     postgres_pool_max_size: int
 
+    checkpointer_host: str
+    checkpointer_port: int
+    checkpointer_user: str
+    checkpointer_pswd: str
+    checkpointer_db: str
+
+    notification_path: str
+
     rag_top_k: int
     rag_chunk_size: int
     rag_chunk_overlap: int

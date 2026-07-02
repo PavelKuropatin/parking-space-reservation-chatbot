@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Annotated, Literal, Optional, TypedDict
 
 from langgraph.graph import add_messages
@@ -9,7 +10,7 @@ from langchain_core.messages import AnyMessage
 class UserIntentDecision(BaseModel):
     """Root routing decision for a fresh turn."""
 
-    route: Literal["information_request", "reservation", "unknown"] = Field(
+    route: Literal["information", "reservation", "_unknown"] = Field(
         description=(
             "'reservation' - user wants to book, reserve, or change a parking spot; use it if user directly write about it "
             "'information_request' - a question about hours, pricing, rules, and another questions about."
@@ -17,13 +18,14 @@ class UserIntentDecision(BaseModel):
         )
     )
 
+
 RESERVATION_FIELD_LABELS = {
     "customer_full_name": "Customer",
     "level": "Parking level",
     "space_type": "Space type",
     "start_datetime": "Start time",
     "end_datetime": "End time",
-    "license_plate": "Plate"
+    "license_plate": "Plate",
 }
 
 RESERVATION_FIELD_DESCRIPTIONS = {
@@ -34,6 +36,11 @@ RESERVATION_FIELD_DESCRIPTIONS = {
     "end_datetime": "reservation end datetime in YYYY-MM-DD HH:MM format",
     "license_plate": "customer vehicle number / license plate",
 }
+
+
+class ReservationStatus(Enum):
+    APPROVED = "approved"
+    REJECTED = "rejected"
 
 
 class UserConfirmDecision(BaseModel):
@@ -48,6 +55,14 @@ class UserConfirmDecision(BaseModel):
     )
 
 
+class ReservationPhase(Enum):
+    COLLECTING = "collecting"
+    CONFIRMING = "confirming"
+    REGUESTING_APROVAL = "request_admin_approval"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
 class GraphState(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
     route: Optional[str]  # information_request | reservation | unknown
@@ -60,10 +75,8 @@ class GraphState(TypedDict):
     human_message: str
     ai_message: str
 
-    # information
-    rag_context: list[str]
-
     # reservation
-    current_details: dict
-    reservation_phase: str  # "collecting" | "confirming" | "done" | "cancelled"
+    reservation_details: dict
+    reservation_phase: ReservationPhase
     reservation_id: int
+    reservation_status: ReservationStatus

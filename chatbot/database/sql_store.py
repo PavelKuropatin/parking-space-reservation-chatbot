@@ -100,6 +100,15 @@ class ParkingDataDB:
         """
         return self.__write(sql, params)
 
+    def udpate_reservation_status(self, params: dict) -> list[dict]:
+        sql = """
+            UPDATE reservations
+            SET status = %(reservation_status)s
+            WHERE id = %(reservation_id)s
+            RETURNING id
+        """
+        return self.__write(sql, params)
+
 
 __PARKING_DATA_DB: ParkingDataDB = None
 

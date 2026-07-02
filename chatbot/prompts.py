@@ -83,7 +83,7 @@ Collect the following information:
 - license_plate: customer vehicle number / license plate
 
 Currently collected data:
-{current_details}
+{reservation_details}
 
 Missed fields:
 {gaps}
@@ -129,7 +129,7 @@ Your task is to extract the value of the field "{field}" with description "{fiel
 
 Output format:
 {{
-  "{field}": <value or null>
+  "{field}": "<parsed value>"
 {{
 
 Examples:
