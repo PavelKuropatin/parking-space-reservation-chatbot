@@ -61,7 +61,6 @@ Reservations pause the graph mid-run via LangGraph's `interrupt()`. A PostgreSQL
 │   │   └── run_evaluation.py            # RAG + LLM quality evaluation
 │   ├── utils/                           # Shared utilities and evaluation helpers
 │   ├── graph.py                         # LangGraph state graph definition
-│   ├── graph_utils.py                   # LLM factory, checkpointer factory, misc helpers
 │   ├── nodes.py                         # LangGraph node implementations
 │   ├── notifier.py                      # Filesystem-based request/response mailbox (client ↔ admin)
 │   ├── prompts.py                       # Prompt templates

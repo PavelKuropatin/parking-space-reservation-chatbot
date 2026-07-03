@@ -13,6 +13,7 @@ from chatbot.nodes import (
     request_admin_approval_node,
     unknown_node,
     create_reservation_node,
+    save_reservation_node,
     after_classify_intent_router,
     qa_system_rag_node
 )
@@ -39,6 +40,7 @@ def build_graph(checkpointer: PostgresSaver) -> CompiledStateGraph:
 
     # Reservation nodes
     g.add_node("reservation", create_reservation_node)
+    g.add_node("save_reservation", save_reservation_node)
     g.add_node("request_admin_approval", request_admin_approval_node)
     g.add_node("process_admin_response", process_admin_response_node)
 
@@ -78,10 +80,12 @@ def build_graph(checkpointer: PostgresSaver) -> CompiledStateGraph:
         "reservation",
         after_reservation_router,
         {
-            "request_admin_approval": "request_admin_approval",
+            "save_reservation": "save_reservation",
             "output_guardrail": "output_guardrail",
         }
     )
+    # ignore interrupted node rerun
+    g.add_edge("save_reservation", "request_admin_approval")
     g.add_edge("request_admin_approval", "process_admin_response")
     g.add_edge("process_admin_response", "output_guardrail")
 

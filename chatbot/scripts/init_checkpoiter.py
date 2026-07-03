@@ -1,4 +1,4 @@
-from chatbot.graph_utils import get_checkpointer
+from chatbot.utils.graph_utils import get_checkpointer
 from chatbot.settings import get_settings
 
 
