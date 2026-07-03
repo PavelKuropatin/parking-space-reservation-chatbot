@@ -1,3 +1,4 @@
+# alternative dependencies file
 # stage 1
 weaviate==0.1.2
 weaviate-client==4.22.0
@@ -22,3 +23,4 @@ click==8.4.2
 
 # stage 2
 langgraph-checkpoint-postgres==3.1.0
+pytest==9.1.1

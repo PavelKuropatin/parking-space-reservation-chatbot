@@ -4,7 +4,7 @@ from langgraph.types import Command
 from chatbot.graph import build_graph
 from chatbot.notifier import RequestType, get_notifier
 from chatbot.states import ReservationStatus
-from chatbot.graph_utils import get_checkpointer
+from chatbot.utils.graph_utils import get_checkpointer
 from chatbot.logging import logger
 from chatbot.settings import get_settings
 

@@ -39,6 +39,7 @@ RESERVATION_FIELD_DESCRIPTIONS = {
 
 
 class ReservationStatus(Enum):
+    PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
 

@@ -29,7 +29,7 @@ from chatbot.states import (
     UserIntentDecision,
     ReservationPhase,
 )
-from chatbot.graph_utils import get_llm, last_ai, now
+from chatbot.utils.graph_utils import get_llm, last_ai, now
 from chatbot.guardrail.filtering import get_guardrail
 from chatbot.logging import logger
 
@@ -265,21 +265,42 @@ def summarize_reservation(reservation_details: dict) -> str:
     )
 
 
-# --------------------------------------------------------------------------- #
-# Admin
-# --------------------------------------------------------------------------- #
 def save_reservation(reservation_details: dict) -> int:
     response = get_parking_data_db().write_reservation(reservation_details)
     reservation_id = response[0]["id"]
     return reservation_id
 
 
+def save_reservation_node(state: GraphState) -> dict:
+    reservation_details = state["reservation_details"]
+    try:
+        # save as pending
+        reservation_id = save_reservation(reservation_details)
+        return {
+            "reservation_id": reservation_id,
+            "reservation_status": ReservationStatus.PENDING,
+        }
+    except GraphInterrupt as e:
+        raise e
+    except Exception as e:
+        logger.error("Failed to save reservation: %s", e)
+        return {
+            "route": None,
+            "reservation_phase": None,
+            "reservation_details": {},
+            "ai_message": "Failed to request admin approval. Please try again later",
+        }
+
+
+# --------------------------------------------------------------------------- #
+# Admin
+# --------------------------------------------------------------------------- #
 def request_admin_approval_node(state: GraphState, config: RunnableConfig) -> dict:
     calling_thread_id = config["configurable"]["thread_id"]
     reservation_details = state["reservation_details"]
 
     try:
-        reservation_id = save_reservation(state["reservation_details"])
+        reservation_id = state["reservation_id"]
         request_id = f"admin-request-{reservation_id}"
         interrupt_payload = {
             "calling_thread_id": calling_thread_id,
@@ -300,7 +321,7 @@ def request_admin_approval_node(state: GraphState, config: RunnableConfig) -> di
             "route": None,
             "reservation_phase": None,
             "reservation_details": {},
-            "ai_message": "Failed to request admin approval. Please try again later",
+            "ai_message": "Failed to save reservation. Please try again later",
         }
 
 
@@ -363,5 +384,5 @@ def after_classify_intent_router(state: GraphState) -> str:
 def after_reservation_router(state: GraphState) -> str:
     reservation_phase = state.get("reservation_phase", None)
     if reservation_phase == ReservationPhase.REGUESTING_APROVAL:
-        return "request_admin_approval"
+        return "save_reservation"
     return "output_guardrail"

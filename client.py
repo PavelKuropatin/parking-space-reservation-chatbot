@@ -12,7 +12,7 @@ from chatbot.database.sql_store import get_parking_data_db
 from chatbot.graph import build_graph
 from chatbot.notifier import Notifier, RequestType, get_notifier
 from chatbot.states import GraphState
-from chatbot.graph_utils import get_checkpointer
+from chatbot.utils.graph_utils import get_checkpointer
 from chatbot.settings import get_settings
 
 

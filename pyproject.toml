@@ -50,3 +50,8 @@ max-nested-blocks = 7
 [tool.pylint.format]
 max-line-length = 200
 
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
