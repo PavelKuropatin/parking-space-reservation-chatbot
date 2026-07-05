@@ -1,6 +1,6 @@
 # Parking Space Reservation Chatbot
 
-A conversational AI assistant for parking space reservations, built with LangGraph. It handles natural-language Q&A about parking facilities and guides users through the full reservation flow — including human-in-the-loop admin approval — backed by a vector store (Weaviate) for static knowledge and a relational database (PostgreSQL) for live availability, booking data, and conversation checkpoints.
+A conversational AI assistant for parking space reservations, built with LangGraph. It handles natural-language Q&A about parking facilities and guides users through the full reservation flow — including human-in-the-loop admin approval — backed by a vector store (Weaviate) for static knowledge and a relational database (PostgreSQL) for pricing/hours reference data and conversation checkpoints. Once an admin approves a request, the graph persists it by calling a `submit_reservation` tool exposed over MCP.
 
 ## Architecture
 
@@ -13,16 +13,18 @@ User input
         └─► [ok] → Intent classifier
                     ├─► information_request → RAG (Weaviate) + DB tools ────────┐
                     └─► reservation        → detail extraction → confirmation   │
-                                                 └─► [confirmed] → save reservation (Postgres)
-                                                        └─► interrupt: request_admin_approval
-                                                               └─► admin approves/rejects (admin.py, out-of-band)
-                                                                      └─► update reservation status ─┘
-                                                                                                       │
-                                                                                                       ▼
+                                                 └─► [confirmed] → interrupt: request_admin_approval
+                                                        └─► admin approves/rejects (admin.py, out-of-band)
+                                                               ├─► [approved] → submit_reservation (MCP tool) ─┐
+                                                               └─► [rejected] → cancelled ─────────────────────┤
+                                                                                                                │
+                                                                                                                ▼
                                                                                             Output guardrail (Presidio PII scan)
 ```
 
 Reservations pause the graph mid-run via LangGraph's `interrupt()`. A PostgreSQL-backed checkpointer persists the paused state so a separate `admin.py` process can review the request and resume the customer's thread once a decision is made. The two processes exchange requests/decisions through a simple filesystem-based JSON mailbox (`chatbot/notifier.py`).
+
+No reservation record exists until an admin approves it — there's no "pending" row written anywhere first. On approval, the resumed graph calls the `submit_reservation` tool over MCP (`chatbot/mcp/mcp_server.py`, authenticated with a bearer token) to persist the reservation; on rejection nothing is persisted and the request is simply marked cancelled.
 
 ![LangGraph](langgraph.png)
 
@@ -31,12 +33,13 @@ Reservations pause the graph mid-run via LangGraph's `interrupt()`. A PostgreSQL
 | Component | Technology |
 |-----------|-----------|
 | Agent framework | LangGraph |
-| LLM | OpenAI-compatible endpoint (configurable) |
+| LLM | OpenAI-compatible endpoint or Anthropic (configurable via `LLM_MODEL_PROVIDER`) |
 | Vector store | Weaviate 1.38 |
 | Vectorizer | `sentence-transformers/multi-qa-MiniLM-L6-cos-v1` |
 | Reranker | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
-| Relational DB | PostgreSQL 17 |
+| Relational DB | PostgreSQL 17 (pricing and working-hours reference data) |
 | Conversation checkpointing | PostgreSQL (`langgraph-checkpoint-postgres`) |
+| Reservation submission | FastMCP server (`chatbot/mcp/mcp_server.py`) exposing a `submit_reservation` tool, called via `langchain-mcp-adapters` |
 | Admin notification transport | Filesystem JSON mailbox (`chatbot/notifier.py`) |
 | PII guardrail | Microsoft Presidio + spaCy `en_core_web_lg` |
 
@@ -52,9 +55,11 @@ Reservations pause the graph mid-run via LangGraph's `interrupt()`. A PostgreSQL
 ├── chatbot/
 │   ├── database/
 │   │   ├── retriever.py                 # Weaviate hybrid-search retriever
-│   │   └── sql_store.py                 # PostgreSQL access (pricing, hours, availability, reservations)
+│   │   └── sql_store.py                 # PostgreSQL access (pricing, working hours)
 │   ├── guardrail/
 │   │   └── filtering.py                 # Presidio-based PII filtering
+│   ├── mcp/
+│   │   └── mcp_server.py                # FastMCP server exposing `submit_reservation` (writes approved reservations to a PSV file)
 │   ├── scripts/
 │   │   ├── ingest_static_data.py        # Load markdown assets into Weaviate
 │   │   ├── init_checkpoiter.py          # Create the LangGraph checkpointer tables in PostgreSQL
@@ -68,6 +73,7 @@ Reservations pause the graph mid-run via LangGraph's `interrupt()`. A PostgreSQL
 │   ├── settings.py                      # Pydantic settings (reads .env)
 │   └── logging.py                       # App-wide logger (writes to app.log)
 ├── docker-compose.yaml
+├── mcp-server.Dockerfile                # Image for the mcp-server service
 └── pyproject.toml
 ```
 
@@ -115,10 +121,12 @@ uv run python -m spacy download en_core_web_lg
 Copy `.env.template` to `.env` in the project root and fill in your values:
 
 ```dotenv
-# LLM (OpenAI-compatible endpoint — OpenAI, LM Studio, etc.)
-OPENAI_LLM_URL=http://localhost:1234/v1
-OPENAI_LLM_API_KEY=your-api-key
-OPENAI_LLM_MODEL=openai/gpt-oss-20b
+# LLM (LLM_MODEL_PROVIDER selects the client: "openai" — any OpenAI-compatible endpoint
+# such as OpenAI or LM Studio — or "anthropic")
+LLM_MODEL_PROVIDER=openai
+LLM_MODEL_NAME=openai/gpt-oss-20b
+LLM_URL=http://localhost:1234/v1
+LLM_API_KEY=your-api-key
 
 # Weaviate
 WEAVIATE_HOST=localhost
@@ -150,6 +158,10 @@ CHECKPOINTER_PSWD=your-password
 
 # Admin notification mailbox (shared filesystem path between client.py and admin.py)
 NOTIFICATION_PATH=/tmp/parking_notification
+
+# MCP server (chatbot/mcp/mcp_server.py, exposed via docker-compose on port 8088)
+MCP_URL=http://localhost:8088/mcp
+MCP_CLIENT_TOKEN=admin-agent-token
 ```
 
 ### 5. Initialize the checkpointer tables

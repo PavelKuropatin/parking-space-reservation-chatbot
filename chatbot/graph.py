@@ -43,7 +43,7 @@ async def build_graph(checkpointer: PostgresSaver) -> CompiledStateGraph:
 
     mcp_tools = await get_mcp_tools()
 
-    # FIXME convert to llm call + tool_choice
+    # FIXME convert to llm call + tool_choice, the same for rag and reservation
     async def process_admin_approval_node(state: GraphState) -> dict:
         reservation_details = state.get("reservation_details")
         submit_reservation_tool = mcp_tools["submit_reservation"]
