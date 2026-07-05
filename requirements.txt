@@ -24,3 +24,9 @@ click==8.4.2
 # stage 2
 langgraph-checkpoint-postgres==3.1.0
 pytest==9.1.1
+
+
+# stage 3
+langchain-anthropic==1.4.8
+fastmcp==3.4.2
+langchain-mcp-adapters==0.3.0

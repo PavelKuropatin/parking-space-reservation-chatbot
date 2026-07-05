@@ -132,7 +132,6 @@ def qa_system_rag_node(state: GraphState) -> dict:
                 "rag_context": "\n'n".join(documents),
                 "pricing": db.get_space_pricing(),
                 "working_hours": db.get_working_hours(),
-                "available_spaces": db.get_avaliable_spaces(),
                 "question": question,
             }
         )
@@ -265,33 +264,6 @@ def summarize_reservation(reservation_details: dict) -> str:
     )
 
 
-def save_reservation(reservation_details: dict) -> int:
-    response = get_parking_data_db().write_reservation(reservation_details)
-    reservation_id = response[0]["id"]
-    return reservation_id
-
-
-def save_reservation_node(state: GraphState) -> dict:
-    reservation_details = state["reservation_details"]
-    try:
-        # save as pending
-        reservation_id = save_reservation(reservation_details)
-        return {
-            "reservation_id": reservation_id,
-            "reservation_status": ReservationStatus.PENDING,
-        }
-    except GraphInterrupt as e:
-        raise e
-    except Exception as e:
-        logger.error("Failed to save reservation: %s", e)
-        return {
-            "route": None,
-            "reservation_phase": None,
-            "reservation_details": {},
-            "ai_message": "Failed to request admin approval. Please try again later",
-        }
-
-
 # --------------------------------------------------------------------------- #
 # Admin
 # --------------------------------------------------------------------------- #
@@ -300,63 +272,38 @@ def request_admin_approval_node(state: GraphState, config: RunnableConfig) -> di
     reservation_details = state["reservation_details"]
 
     try:
-        reservation_id = state["reservation_id"]
-        request_id = f"admin-request-{reservation_id}"
+        request_id = f"admin-request-{now("%Y%m%dT%H%M%S")}"
         interrupt_payload = {
             "calling_thread_id": calling_thread_id,
             "request_id": request_id,
-            "reservation_id": reservation_id,
             "message": ("Details:\n" f"{summarize_reservation(reservation_details)}"),
         }
         response = interrupt(interrupt_payload)
+        reservation_status = ReservationStatus(response["reservation_status"].lower())
+        reservation_details |= {"approved_ts": response["approval_ts"]}
         return {
-            "reservation_id": reservation_id,
-            "reservation_status": ReservationStatus(response.lower()),
+            "reservation_status": reservation_status,
+            "reservation_details": reservation_details,
         }
     except GraphInterrupt as e:
         raise e
     except Exception as e:
-        logger.error("Failed to request admin: %s", e)
+        logger.error("Failed to request admin approval: %s", e)
         return {
             "route": None,
             "reservation_phase": None,
             "reservation_details": {},
-            "ai_message": "Failed to save reservation. Please try again later",
+            "ai_message": "Failed to request admin approval. Please try again later",
         }
 
 
-def process_admin_response_node(state: GraphState) -> dict:
-    reservation_status = state.get("reservation_status")
-    reservation_id = state.get("reservation_id")
-
-    try:
-        db = get_parking_data_db()
-        response = db.udpate_reservation_status(
-            {
-                "reservation_id": reservation_id,
-                "reservation_status": reservation_status.value.lower(),
-            }
-        )
-        if not response:
-            raise Exception(f"Failed to update reservation[{reservation_id}]")
-
-        ai_message = f"Your reservaton #{reservation_id} was {reservation_status.value}"
-        return {
-            "reservation_phase": ReservationPhase.COMPLETED,
-            "reservation_details": {},
-            "ai_message": ai_message,
-        }
-    except Exception as e:
-        logger.error(
-            f"Failed to update reservation[{reservation_id}] to [{reservation_status}]: %s",
-            e,
-        )
-        return {
-            "route": None,
-            "reservation_phase": None,
-            "reservation_details": {},
-            "ai_message": "Failed to confirm reservation. Please try again later.",
-        }
+def process_admin_rejection_node(_state: GraphState) -> dict:
+    return {
+        "route": None,
+        "reservation_phase": ReservationPhase.COMPLETED,
+        "reservation_details": {},
+        "ai_message": "Your reservaton was rejected",
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -384,5 +331,14 @@ def after_classify_intent_router(state: GraphState) -> str:
 def after_reservation_router(state: GraphState) -> str:
     reservation_phase = state.get("reservation_phase", None)
     if reservation_phase == ReservationPhase.REGUESTING_APROVAL:
-        return "save_reservation"
+        return "request_admin_approval"
     return "output_guardrail"
+
+
+def after_request_admin_approval_router(state: GraphState) -> str:
+    reservation_status = state["reservation_status"]
+    match reservation_status:
+        case ReservationStatus.APPROVED:
+            return "process_admin_approval"
+        case ReservationStatus.REJECTED:
+            return "process_admin_rejection"

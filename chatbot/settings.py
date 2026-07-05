@@ -6,15 +6,20 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
 
-    openai_llm_model: str
-    openai_llm_url: str
-    openai_llm_api_key: str
+    llm_model_provider: str
+    llm_model_name: str
+    llm_url: str
+    llm_api_key: str
 
     weaviate_host: str
     weaviate_port: int
     weaviate_grpc_port: int
     weaviate_collection: str
     weaviate_init_data_path: str
+
+    rag_top_k: int
+    rag_chunk_size: int
+    rag_chunk_overlap: int
 
     postgres_host: str
     postgres_port: int
@@ -32,9 +37,8 @@ class Settings(BaseSettings):
 
     notification_path: str
 
-    rag_top_k: int
-    rag_chunk_size: int
-    rag_chunk_overlap: int
+    mcp_url: str
+    mcp_client_token: str
 
     model_config = ConfigDict(
         env_file=".env",

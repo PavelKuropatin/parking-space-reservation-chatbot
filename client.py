@@ -1,3 +1,4 @@
+import asyncio
 import sys
 import time
 from typing import Optional
@@ -16,10 +17,10 @@ from chatbot.utils.graph_utils import get_checkpointer
 from chatbot.settings import get_settings
 
 
-def print_history(
+async def print_history(
     graph: CompiledStateGraph, config: RunnableConfig, n: int = 5
 ) -> None:
-    state_snapshot = graph.get_state(config)
+    state_snapshot = await graph.aget_state(config)
     messages = (state_snapshot.values or {}).get("messages", [])
 
     if messages:
@@ -46,7 +47,9 @@ def get_interrupt_payload(obj: GraphState | StateSnapshot) -> Optional[dict]:
     return None
 
 
-def chat(graph: CompiledStateGraph, config: RunnableConfig, notifier: Notifier) -> None:
+async def chat(
+    graph: CompiledStateGraph, config: RunnableConfig, notifier: Notifier
+) -> None:
 
     while True:
         try:
@@ -61,14 +64,14 @@ def chat(graph: CompiledStateGraph, config: RunnableConfig, notifier: Notifier) 
             continue
 
         # chatbot
-        state = graph.invoke({"human_message": text}, config=config)
+        state = await graph.ainvoke({"human_message": text}, config=config)
         if interrupt_payload := get_interrupt_payload(state):
-            await_and_resume(graph, config, notifier, interrupt_payload)
+            await await_and_resume(graph, config, notifier, interrupt_payload)
         else:
             print(f"bot> {state['messages'][-1].content}")
 
 
-def await_and_resume(
+async def await_and_resume(
     graph: GraphState, config: dict, notifier: Notifier, payload: dict
 ) -> None:
 
@@ -82,13 +85,13 @@ def await_and_resume(
             print(f"system> Waiting for admin decision for request {request_id}...")
             time.sleep(5)
 
-        state = graph.invoke(Command(resume=decision), config)
+        state = await graph.ainvoke(Command(resume=decision), config)
         payload = get_interrupt_payload(state)
         if payload is None:
             print(f"bot> {state['messages'][-1].content}")
 
 
-def main():
+async def main():
 
     args = sys.argv[1:]
     if len(args):
@@ -100,21 +103,21 @@ def main():
 
     settings = get_settings()
     notifier = get_notifier()
-    # pylint:
-    with (
-        get_checkpointer(settings) as checkpointer,
-        get_parking_data_db() as _,
-        get_parking_info_retriever() as _,
-    ):
 
-        client_graph = build_graph(checkpointer)
-        print_history(client_graph, config)
+    async with get_checkpointer(settings) as checkpointer:
+        with get_parking_data_db() as _, get_parking_info_retriever() as _:
 
-        interrupt_payload = get_interrupt_payload(client_graph.get_state(config))
-        if interrupt_payload:
-            await_and_resume(client_graph, config, notifier, interrupt_payload)
-        chat(client_graph, config, notifier)
+            client_graph = await build_graph(checkpointer)
+            await print_history(client_graph, config)
+
+            state = await client_graph.aget_state(config)
+            interrupt_payload = get_interrupt_payload(state)
+            if interrupt_payload:
+                await await_and_resume(
+                    client_graph, config, notifier, interrupt_payload
+                )
+            await chat(client_graph, config, notifier)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
