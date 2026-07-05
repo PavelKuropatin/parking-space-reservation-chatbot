@@ -181,7 +181,6 @@ def generate_llm_answers(
                 "rag_context": rag_context,
                 "pricing": "",
                 "working_hours": "",
-                "available_spaces": "",
                 "question": item.question,
             }
         )

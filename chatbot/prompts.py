@@ -62,9 +62,6 @@ Parking current pricing:
 
 Parking current working hours:
 {working_hours}
-
-Parking current available spaces:
-{available_spaces}
 """)
 ])
 

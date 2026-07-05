@@ -1,21 +1,22 @@
+import asyncio
 import time
 
 from langgraph.types import Command
 from chatbot.graph import build_graph
 from chatbot.notifier import RequestType, get_notifier
 from chatbot.states import ReservationStatus
-from chatbot.utils.graph_utils import get_checkpointer
+from chatbot.utils.graph_utils import get_checkpointer, now
 from chatbot.logging import logger
 from chatbot.settings import get_settings
 
 
-def main():
+async def main():
 
     settings = get_settings()
     _ = {"configurable": {"thread_id": "admin-id-9996c969-8e5c-484f-af07-37683fa07e80"}}
 
-    with get_checkpointer(settings) as checkpointer:
-        admin_graph = build_graph(checkpointer)
+    async with get_checkpointer(settings) as checkpointer:
+        admin_graph = await build_graph(checkpointer)
         notifier = get_notifier()
         while True:
             print("Waiting for admin notification...")
@@ -27,7 +28,6 @@ def main():
 
                         # info
                         request_id = payload["request_id"]
-                        reservation_id = payload["reservation_id"]
                         calling_thread_id = payload["calling_thread_id"]
                         message = payload["message"]
                         print(
@@ -35,7 +35,6 @@ def main():
                                 "Notification received:\n"
                                 f" - Request ID: {request_id}\n"
                                 f" - Calling Thread ID: {calling_thread_id}\n"
-                                f" - Reservation ID: {reservation_id}\n"
                                 f"{message}\n"
                                 f"Please approve ({ReservationStatus.APPROVED.value} / {ReservationStatus.REJECTED.value})"
                             )
@@ -57,18 +56,18 @@ def main():
                         output_payload = {
                             "calling_thread_id": calling_thread_id,
                             "request_id": request_id,
-                            "reservation_id": reservation_id,
-                            "decision": reservation_status.value,
+                            "reservation_status": reservation_status.value,
+                            "approval_ts": now("%Y%m%dT%H%M%S")
                         }
                         notifier.notify(
-                            payload["request_id"], RequestType.RESPONSE, output_payload
+                            request_id, RequestType.RESPONSE, output_payload
                         )
-                        _ = admin_graph.invoke(
-                            Command(resume=reservation_status.value),
+                        _ = await admin_graph.ainvoke(
+                            Command(resume=output_payload),
                             config={"configurable": {"thread_id": calling_thread_id}},
                         )
                         print("Notification sent.")
-                        notifier.remove(payload["request_id"], RequestType.REQUEST)
+                        notifier.remove(request_id, RequestType.REQUEST)
                         print("=== Admin Notification END ===\n\n")
 
                 except Exception as e:
@@ -78,4 +77,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

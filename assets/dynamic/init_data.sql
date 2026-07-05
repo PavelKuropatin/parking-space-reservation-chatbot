@@ -74,78 +74,6 @@ FROM  working_hours wh
 ORDER BY wh.day_of_week;
 
 
--- reservations
-CREATE TABLE IF NOT EXISTS reservations (
-    id                 SERIAL PRIMARY KEY,
-    level              VARCHAR(3)      NOT NULL,
-    space_type         VARCHAR(20)     NOT NULL,
-    customer_full_name VARCHAR(100)    NOT NULL,
-    license_plate      VARCHAR(20)     NOT NULL,
-    start_datetime     TIMESTAMP       NOT NULL,
-    end_datetime       TIMESTAMP       NOT NULL,
-    total_cost         NUMERIC(10, 2), 
-    created_at         TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status             VARCHAR(10)     NOT NULL CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending'
-    CONSTRAINT valid_period CHECK (start_datetime < end_datetime)
-);
-
-
-CREATE OR REPLACE VIEW vw_avaliable_spaces
-AS
-SELECT  s.level,
-        s.space_type,
-        s.amount - COUNT(r.id) AS available_spaces
-FROM spaces s
-LEFT JOIN reservations r
-          ON r.space_type = s.space_type
-             AND r.level = s.level 
-             AND NOW() BETWEEN r.start_datetime AND r.end_datetime
-GROUP BY s.level, s.space_type, s.amount
-ORDER BY s.level, s.space_type;
-
-
-CREATE OR REPLACE FUNCTION func_compute_total_cost()
-RETURNS TRIGGER AS $$
-DECLARE
-    hourly_rate NUMERIC(8,2);
-    daily_max   NUMERIC(8,2);
-    current_day DATE;
-    last_day    DATE;
-    day_start   TIMESTAMP;
-    day_end     TIMESTAMP;
-    total_cost  NUMERIC(10,2) := 0;
-BEGIN
-    SELECT amount INTO hourly_rate FROM pricing WHERE price_type = 'hourly';
-    SELECT amount INTO daily_max   FROM pricing WHERE price_type = 'daily_max';
-
-    current_day := DATE(NEW.start_datetime);
-    last_day    := DATE(NEW.end_datetime);
-
-    WHILE current_day <= last_day LOOP
-        day_start := GREATEST(NEW.start_datetime, current_day::TIMESTAMP);
-        day_end := LEAST(NEW.end_datetime, (current_day + INTERVAL '1 day')::TIMESTAMP);
-
-        total_cost := total_cost + LEAST(
-            EXTRACT(EPOCH FROM (day_end - day_start)) / 3600.0 * hourly_rate,
-            daily_max
-        );
-
-        current_day := current_day + 1;
-    END LOOP;
-
-    NEW.total_cost := ROUND(total_cost, 2);
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE TRIGGER trigger_compute_total_cost 
-BEFORE 
-INSERT OR UPDATE
-ON reservations
-FOR EACH ROW
-EXECUTE FUNCTION func_compute_total_cost();
-
-
 -- SEED DATA
 -- pricing
 INSERT INTO pricing (price_type, amount, currency, description) VALUES
@@ -176,27 +104,6 @@ INSERT INTO spaces (level, amount, space_type) VALUES
     ('B1', 100, 'STANDARD'), ('B1', 30, 'EV'), ('B1', 10, 'OVERSIZED'),
     ('B2', 100, 'STANDARD'), ('B2', 35, 'EV'), ('B2', 5, 'OVERSIZED'),
     ('B3', 100, 'STANDARD'), ('B3', 25, 'EV'), ('B3', 15, 'OVERSIZED')
-;
-
-INSERT INTO reservations (level, space_type, customer_full_name, license_plate, start_datetime, end_datetime, total_cost, status) VALUES
-    -- past
-    ('B1', 'STANDARD',  'John Smith',        'ABC-1234', '2026-06-20 09:00', '2026-06-20 12:00',  9.00, 'approved'),  -- 3h  × 3.00
-    ('B2', 'EV',        'Maria Garcia',      'XYZ-5678', '2026-06-22 07:00', '2026-06-22 15:00', 24.00, 'approved'),  -- 8h  × 3.00
-    ('B3', 'OVERSIZED', 'Robert Johnson',    'LMN-9012', '2026-06-25 10:00', '2026-06-25 11:30',  4.50, 'approved'),  -- 1.5h × 3.00
-    ('B1', 'EV',        'Emma Wilson',       'DEF-3456', '2026-06-26 08:00', '2026-06-26 19:00', 25.00, 'approved'),  -- 11h → daily max
-    ('B2', 'STANDARD',  'James Brown',       'GHI-7890', '2026-06-27 00:00', '2026-06-27 06:00', 18.00, 'approved'),  -- 6h  × 3.00
-    ('B3', 'EV',        'Sophia Martinez',   'JKL-1357', '2026-06-27 14:00', '2026-06-27 23:59', 25.00, 'approved'),  -- ~10h → daily max
-    ('B1', 'STANDARD',  'Oliver Davis',      'MNO-2468', '2026-06-28 10:00', '2026-06-28 14:00', 12.00, 'approved'),  -- 4h  × 3.00
-    ('B2', 'OVERSIZED', 'Isabella Taylor',   'PQR-3691', '2026-06-29 06:00', '2026-06-29 09:00',  9.00, 'approved'),  -- 3h  × 3.00
-    -- active
-    ('B1', 'STANDARD',  'William Anderson',  'STU-4824', '2026-06-30 08:00', '2026-06-30 17:00', 25.00, 'approved'),  -- 9h  → daily max
-    ('B3', 'EV',        'Charlotte Thomas',  'VWX-5937', '2026-06-30 10:00', '2026-06-30 13:00',  9.00, 'approved'),  -- 3h  × 3.00
-    ('B2', 'OVERSIZED', 'Ethan Robinson',    'YZA-6048', '2026-06-30 07:00', '2026-06-30 20:00', 25.00, 'approved'),  -- 13h → daily max
-    -- future
-    ('B1', 'EV',        'Amelia White',      'BCD-7159', '2026-07-01 09:00', '2026-07-01 13:00', 12.00, 'approved'),  -- 4h  × 3.00
-    ('B3', 'STANDARD',  'Noah Harris',       'EFG-8260', '2026-07-03 13:00', '2026-07-03 16:00',  9.00, 'approved'),  -- 3h  × 3.00
-    ('B2', 'STANDARD',  'Liam Jackson',      'HIJ-9371', '2026-07-04 08:00', '2026-07-04 17:00', 25.00, 'approved'),  -- 9h  → daily max
-    ('B1', 'OVERSIZED', 'Ava Martin',        'KLM-0482', '2026-07-05 11:00', '2026-07-06 11:00', 50.00, 'approved')   -- 2d  → 2 × daily max
 ;
 
 COMMIT;

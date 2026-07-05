@@ -4,24 +4,31 @@ from langchain.chat_models import BaseChatModel
 from langchain.messages import AIMessage
 from langchain_core.messages import BaseMessage
 from langchain_openai import ChatOpenAI
-from langgraph.checkpoint.postgres import PostgresSaver
+from langchain_anthropic import ChatAnthropic
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from chatbot.settings import Settings, get_settings
 
 
 def get_llm() -> BaseChatModel:
     settings = get_settings()
-    return ChatOpenAI(
-        model=settings.openai_llm_model,
-        api_key=settings.openai_llm_api_key,
-        base_url=settings.openai_llm_url,
-    )
+    match settings.llm_model_provider:
+        case "openai":
+            return ChatOpenAI(
+                model=settings.llm_model_name,
+                api_key=settings.llm_api_key,
+                base_url=settings.llm_url,
+            )
+        case "anthropic":
+            return ChatAnthropic(
+                model=settings.llm_model_name, api_key=settings.llm_api_key
+            )
 
 
-def now():
-    return datetime.now().strftime("%Y-%m-%d %H:%M")
+def now(fmt: str = "%Y-%m-%d %H:%M"):
+    return datetime.now().strftime(fmt)
 
 
-def get_checkpointer(settings: Settings) -> PostgresSaver:
+def get_checkpointer(settings: Settings) -> AsyncPostgresSaver:
     try:
 
         url = "postgresql://{user}:{pswd}@{host}/{db}".format(  # pylint: disable=consider-using-f-string
@@ -30,7 +37,7 @@ def get_checkpointer(settings: Settings) -> PostgresSaver:
             host=settings.checkpointer_host,
             db=settings.checkpointer_db,
         )
-        return PostgresSaver.from_conn_string(url)
+        return AsyncPostgresSaver.from_conn_string(url)
 
     except Exception as e:
         raise e
