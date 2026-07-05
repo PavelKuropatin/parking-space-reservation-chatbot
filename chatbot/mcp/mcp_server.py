@@ -9,7 +9,9 @@ from fastmcp.server.dependencies import get_access_token
 from chatbot.logging import logger
 
 BASE = Path(__file__).parent
-RESERVATIONS_FILE = BASE / "reservations.psv"
+DATA_DIR = BASE / "data"
+DATA_DIR.mkdir(exist_ok=True)
+RESERVATIONS_FILE = DATA_DIR / "reservations.psv"
 
 
 class ReservationMcpModel(BaseModel):
@@ -90,4 +92,4 @@ def submit_reservation(reservation: ReservationMcpModel) -> dict:
 
 
 if __name__ == "__main__":
-    mcp.run(transport="http", host="127.0.0.1", port=8088, path="/mcp")
+    mcp.run(transport="http", host="0.0.0.0", port=8088, path="/mcp")
