@@ -85,7 +85,7 @@ Reservations pause the graph mid-run via LangGraph's `interrupt()`. A PostgreSQL
 docker compose up -d
 ```
 
-This starts four services:
+This starts five services:
 
 | Service | Description | Port |
 |---------|-------------|------|
@@ -93,6 +93,7 @@ This starts four services:
 | `t2v-transformers` | Text-to-vector inference (`multi-qa-MiniLM-L6-cos-v1`) | internal |
 | `reranker-transformers` | Reranker inference (`ms-marco-MiniLM-L-6-v2`) | internal |
 | `postgres` | Relational database (seeded from `assets/dynamic/`) — hosts both the app tables and, by default, the LangGraph checkpointer tables | 5432 |
+| `mcp-server` | MCP server (`chatbot/mcp/mcp_server.py`) exposing the `submit_reservation` tool used by the graph | 8088 |
 
 ### 2. Create virtual environment and install dependencies
 

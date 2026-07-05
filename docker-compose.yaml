@@ -45,6 +45,18 @@ services:
       - ./assets/dynamic:/docker-entrypoint-initdb.d
 
 
+  mcp-server:
+    build:
+      context: .
+      dockerfile: mcp-server.Dockerfile
+    restart: unless-stopped
+    ports:
+      - 8088:8088
+    volumes:
+      - mcp_reservations:/app/chatbot/mcp/data
+
+
 volumes:
   weaviate_data:
   postgres_data:
+  mcp_reservations:
