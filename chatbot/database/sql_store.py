@@ -5,7 +5,8 @@ from psycopg_pool import ConnectionPool
 
 from chatbot.settings import get_settings
 
-_RESPONSE_CACHE = TTLCache(maxsize=100, ttl=60)
+_PRICING_CACHE = TTLCache(maxsize=100, ttl=60)
+_WORKING_HOURS_CACHE = TTLCache(maxsize=100, ttl=60)
 
 
 class ParkingDataDB:
@@ -43,7 +44,7 @@ class ParkingDataDB:
                 cursor.execute(query, params)
                 return cursor.fetchall()
 
-    @cached(_RESPONSE_CACHE)
+    @cached(_PRICING_CACHE)
     def get_space_pricing(self) -> list[dict]:
         sql = """
             SELECT p.price_id,
@@ -55,7 +56,7 @@ class ParkingDataDB:
         """
         return self.__fetch_all(sql)
 
-    @cached(_RESPONSE_CACHE)
+    @cached(_WORKING_HOURS_CACHE)
     def get_working_hours(self) -> list[dict]:
         sql = """
             SELECT v.hours_id,

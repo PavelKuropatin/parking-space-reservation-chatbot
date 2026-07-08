@@ -34,7 +34,7 @@ dependencies = [
 # pylint
 [tool.pylint.main]
 jobs = 4
-ignore = [".venv"]
+ignore = [".venv", "tests"]
 
 [tool.pylint.messages_control]
 disable = [
@@ -49,6 +49,7 @@ disable = [
 
 [tool.pylint.design]
 max-nested-blocks = 7
+max-locals = 20
 
 [tool.pylint.format]
 max-line-length = 200
@@ -57,4 +58,7 @@ max-line-length = 200
 dev = [
     "pytest>=9.1.1",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
 

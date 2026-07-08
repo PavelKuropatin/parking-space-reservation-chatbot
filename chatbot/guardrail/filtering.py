@@ -26,7 +26,7 @@ class DetectionResult:
         return ", ".join(self.entity_names)
 
 
-class Guardtrail:
+class Guardrail:
 
     def __init__(self):
         self.__analyzer = self.__build_analyzer()
@@ -66,8 +66,8 @@ class Guardtrail:
 __GUARDRAIL = None
 
 
-def get_guardrail() -> Guardtrail:
+def get_guardrail() -> Guardrail:
     global __GUARDRAIL
     if __GUARDRAIL is None:
-        __GUARDRAIL = Guardtrail()
+        __GUARDRAIL = Guardrail()
     return __GUARDRAIL

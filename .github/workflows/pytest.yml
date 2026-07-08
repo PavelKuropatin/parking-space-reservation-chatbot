@@ -25,3 +25,31 @@ jobs:
 
       - name: Run pytest
         run: uv run pytest
+        env:
+          LLM_MODEL_PROVIDER: openai
+          LLM_MODEL_NAME: gpt-4o-mini
+          LLM_URL: http://localhost:1234/v1
+          LLM_API_KEY: test-key
+          WEAVIATE_HOST: localhost
+          WEAVIATE_PORT: 8080
+          WEAVIATE_GRPC_PORT: 50051
+          WEAVIATE_COLLECTION: parking_info
+          WEAVIATE_INIT_DATA_PATH: assets/static
+          RAG_CHUNK_SIZE: 200
+          RAG_CHUNK_OVERLAP: 100
+          RAG_TOP_K: 3
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: test
+          POSTGRES_USER: test
+          POSTGRES_PSWD: test
+          POSTGRES_POOL_MIN_SIZE: 1
+          POSTGRES_POOL_MAX_SIZE: 2
+          CHECKPOINTER_HOST: localhost
+          CHECKPOINTER_PORT: 5432
+          CHECKPOINTER_DB: test
+          CHECKPOINTER_USER: test
+          CHECKPOINTER_PSWD: test
+          NOTIFICATION_PATH: /tmp/parking_notification
+          MCP_URL: http://0.0.0.0:8088/mcp
+          MCP_CLIENT_TOKEN: test-token

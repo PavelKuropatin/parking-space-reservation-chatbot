@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from langchain.chat_models import BaseChatModel
+from langchain.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
 
@@ -181,7 +182,7 @@ def generate_llm_answers(
                 "rag_context": rag_context,
                 "pricing": "",
                 "working_hours": "",
-                "question": item.question,
+                "qa_conversation": [HumanMessage(item.question)],
             }
         )
         response = llm.invoke(messages)
@@ -243,7 +244,8 @@ def run_evaluations(
             "weaviate_collection": collection,
         }
     )
-    llm = get_llm()
+    llm = get_llm(temperature=0)
+    judje_llm = get_llm(temperature=0.3)
     evaluation_results = []
     evaluations_total = len(chunk_sizes) * len(chunk_overlaps)
     evaluation_no = 0
@@ -275,7 +277,7 @@ def run_evaluations(
                         chunk_size=chunk_size,
                         chunk_overlap=chunk_overlap,
                         llm=llm,
-                        judge_llm=llm,
+                        judge_llm=judje_llm,
                     )
                     evaluation_results.append(result)
 

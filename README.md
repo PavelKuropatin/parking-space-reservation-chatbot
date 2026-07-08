@@ -72,6 +72,7 @@ No reservation record exists until an admin approves it — there's no "pending"
 │   ├── states.py                        # Graph state, enums, structured-output schemas
 │   ├── settings.py                      # Pydantic settings (reads .env)
 │   └── logging.py                       # App-wide logger (writes to app.log)
+├── tests/                               # Pytest unit tests (guardrail, MCP server, graph nodes)
 ├── docker-compose.yaml
 ├── mcp-server.Dockerfile                # Image for the mcp-server service
 └── pyproject.toml
@@ -244,6 +245,16 @@ Response (a/r): a
 Notification sent.
 === Admin Notification END ===
 ```
+
+## Testing
+
+Unit tests cover the PII guardrail, the MCP server, and the LangGraph node logic (client-side reservation flow and admin approval flow) in isolation. LLM calls, `interrupt()`/resume, and the MCP auth context are mocked; the guardrail tests exercise the real Presidio analyzer, so they need the spaCy model from step 3. Nothing in the suite talks to Weaviate, PostgreSQL, or the MCP server over the network, so the Docker services from step 1 aren't required to run it.
+
+```bash
+uv run pytest
+```
+
+The suite also runs automatically on every pull request targeting `main` (`.github/workflows/pytest.yml`).
 
 ## Evaluation
 

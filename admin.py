@@ -71,7 +71,7 @@ async def main():
                         print("=== Admin Notification END ===\n\n")
 
                 except Exception as e:
-                    logger.error("Error processing admin notification: %s", e)
+                    logger.error("Error processing admin notification: %s", e, exc_info=True)
 
             time.sleep(5)
 
