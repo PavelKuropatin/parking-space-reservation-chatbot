@@ -1,3 +1,4 @@
+import fcntl
 import os
 from pathlib import Path
 
@@ -12,6 +13,7 @@ BASE = Path(__file__).parent
 DATA_DIR = BASE / "data"
 DATA_DIR.mkdir(exist_ok=True)
 RESERVATIONS_FILE = DATA_DIR / "reservations.psv"
+RESERVATIONS_LOCK_FILE = DATA_DIR / "reservations.lock"
 
 
 class ReservationMcpModel(BaseModel):
@@ -60,34 +62,40 @@ def submit_reservation(reservation: ReservationMcpModel) -> dict:
     try:
         _ = has_required_scope("reservations:submit")
 
-        # TODO lock?
-        if os.path.exists(RESERVATIONS_FILE):
-            with open(RESERVATIONS_FILE, "r", encoding="utf-8") as f:
-                reservation_id = f.read().count("\n") + 1
+        # Serialize read-count-then-append across concurrent requests so
+        # reservation IDs stay unique (a load test caught duplicate IDs
+        # without this lock).
+        with open(RESERVATIONS_LOCK_FILE, "w", encoding="utf-8") as lock_f:
+            fcntl.flock(lock_f, fcntl.LOCK_EX)
+            try:
+                if os.path.exists(RESERVATIONS_FILE):
+                    with open(RESERVATIONS_FILE, "r", encoding="utf-8") as f:
+                        reservation_id = f.read().count("\n") + 1
+                else:
+                    reservation_id = 1
 
-        else:
-            reservation_id = 1
+                record = " | ".join(
+                    [
+                        str(reservation_id),
+                        reservation.customer_full_name,
+                        reservation.license_plate,
+                        f"{reservation.start_datetime} : {reservation.end_datetime}",
+                        f"{reservation.level}-{reservation.space_type}",
+                        reservation.approved_ts,
+                    ]
+                )
 
-        record = " | ".join(
-            [
-                str(reservation_id),
-                reservation.customer_full_name,
-                reservation.license_plate,
-                f"{reservation.start_datetime} : {reservation.end_datetime}",
-                f"{reservation.level}-{reservation.space_type}",
-                reservation.approved_ts,
-            ]
-        )
-
-        with open(RESERVATIONS_FILE, "a+", encoding="utf-8") as f:
-            f.write(record + "\n")
+                with open(RESERVATIONS_FILE, "a+", encoding="utf-8") as f:
+                    f.write(record + "\n")
+            finally:
+                fcntl.flock(lock_f, fcntl.LOCK_UN)
 
         return {"is_error": False, "reservation_id": reservation_id}
     except PermissionError as e:
-        logger.error("Unsufficient permissions: %s", e)
+        logger.error("Unsufficient permissions: %s", e, exc_info=True)
         return {"is_error": True, "error_message": "Unsufficient permissions", "error_http_code": 401}
     except Exception as e:
-        logger.error("Failed to submit_reservation: %s", e)
+        logger.error("Failed to submit_reservation: %s", e, exc_info=True)
         return {"is_error": True, "error_message": str(e), "error_http_code": 500}
 
 
